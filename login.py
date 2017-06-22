@@ -1,16 +1,21 @@
 # login inside code chef with login credentials i.e username and password
 
-# things left - if pre logged in simultaneous 2 sessions are not allowed
-# method - either delete previous cookies when asking for credentials or *still in process*
+# things left - if pre logged in simultaneous 2 sessions are not allowed (deleting cookies before logging in)
+# method - delete previous cookies when asking for credentials.
 
 def login(username="", password=""):
 
     # important libraries
     import mechanize
-
-    # login using login credentials
+    import cookielib
 
     br = mechanize.Browser()
+
+    # deleting previous cookies
+    cj = cookielib.LWPCookieJar()
+    br.set_cookiejar(cj)
+
+    # login using login credentials
     br.set_handle_robots(False)
     br.set_handle_equiv(True)
     br.set_handle_gzip(True)
@@ -25,6 +30,11 @@ def login(username="", password=""):
 
     br.method = "POST"
     response = br.submit()
-    # print response
+    # print response.read
     return br
 
+# how to use
+# from login import login
+# browser = login(username,password)  use this for first time login
+# html_page = browser.login("https://www.codechef.com/node")
+# soup = BeautifulSoup(html_page) and then further scrapping
