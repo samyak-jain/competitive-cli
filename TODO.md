@@ -8,5 +8,6 @@
 - [ ] uva debug api
 - [ ] check all solutions submitted
 - [ ] work on the same things for codechef
+- [ ] Add interactive mode
 
 
