@@ -1,6 +1,6 @@
 # Competitive-CLI
 
-It is a command line interface that lets a user interact with websites including but not limited to   
+It is a command line interface that lets a user interact with websites including but not limited to
 
 - UVA Online Judge
 - CodeChef
