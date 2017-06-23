@@ -1,19 +1,13 @@
 # login inside code chef with login credentials i.e username and password
-
-# things left - if pre logged in simultaneous 2 sessions are not allowed (deleting cookies before logging in)
-# method - delete previous cookies when asking for credentials.
+# method for removing sessions- remove previous cookies by selecting radio buttons on codechef.com/session/limit
 
 def login(username="", password=""):
 
     # important libraries
     import mechanize
-    import cookielib
+    from bs4 import BeautifulSoup as bs
 
     br = mechanize.Browser()
-
-    # deleting previous cookies
-    cj = cookielib.LWPCookieJar()
-    br.set_cookiejar(cj)
 
     # login using login credentials
     br.set_handle_robots(False)
@@ -31,6 +25,16 @@ def login(username="", password=""):
     br.method = "POST"
     response = br.submit()
     # print response.read
+
+    # removing extra sessions using simple scraping and form handling
+    while br.geturl() == 'https://www.codechef.com/session/limit':
+        br.select_form(predicate=lambda frm: 'id' in frm.attrs and frm.attrs['id'] == 'session-limit-page')
+        soup = bs(response, 'html5lib')
+        value = soup.find('input', attrs={'class','form-radio'})['value']
+        br.form['sid'] = [value]
+        br.method = "POST"
+        response = br.submit()
+
     return br
 
 # how to use
@@ -38,3 +42,4 @@ def login(username="", password=""):
 # browser = login(username,password)  use this for first time login
 # html_page = browser.login("https://www.codechef.com/node")
 # soup = BeautifulSoup(html_page) and then further scrapping
+
