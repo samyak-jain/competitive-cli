@@ -1,8 +1,10 @@
-import pathlib
 import json
+import keyring
+import pathlib
 import prettytable
 
 from colors import color
+
 
 class PreferenceManager:
     def __init__(self):
@@ -23,6 +25,9 @@ class PreferenceManager:
             self.data["common-tpl"] = None
             self.data["uva-tpl"] = None
             self.data["codechef-tpl"] = None
+            self.data["accounts"] = dict()
+            self.data["uva-acc"] = None
+            self.data["codechef-acc"] = None
 
     def __enter__(self):
         return self
@@ -116,6 +121,8 @@ class TemplateManager(PreferenceManager):
         if [website, path] in self.data["templates"].values():
             return
 
+        new_index = self.number_of_templates + 1
+
         if website == "uva":
             self.uva_template = new_index
         elif website == "codechef":
@@ -127,7 +134,6 @@ class TemplateManager(PreferenceManager):
             return
 
         self.number_of_templates += 1
-        new_index = self.number_of_templates
 
         self.data["templates"][new_index] = [website, path]
 
@@ -155,6 +161,7 @@ class TemplateManager(PreferenceManager):
         return key,return_value
 
     def get_template(self, index):
+        index = str(index)
         return self.data["templates"][index]
 
     def set_default(self, key):
@@ -168,5 +175,117 @@ class TemplateManager(PreferenceManager):
         elif website == "common":
             self.common_template = int(key)
 
+
 class AccountManager(PreferenceManager):
-    pass
+    def __init__(self):
+        super().__init__()
+
+        if self.data["accounts"] == {}:
+            self.number_of_accounts = 0
+        else:
+            self.number_of_accounts = int(max(self.data["accounts"].keys()))
+
+        self.uva_account = self.data["uva-acc"]
+        self.codechef_account = self.data["codechef-acc"]
+
+    def __repr__(self):
+        return f"AccountManager(number_of_accounts={self.number_of_accounts!r},uva_account={self.uva_account!r}, \
+                 codechef_account={self.codechef_account!r})"
+
+    def __str__(self):
+        if len(self.data["accounts"]) == 0:
+            return "There are no accounts set"
+
+        table = prettytable.PrettyTable(["Index", "Website", "Username"])
+        list_to_highlight = []
+
+        for keys in self.data["accounts"]:
+            if int(keys) in [self.uva_account, self.codechef_account]:
+                list_to_highlight.append(keys)
+            table.add_row([keys] + self.data["accounts"][keys])
+
+        table_string = table.get_string()
+        table_list = table_string.split("\n")
+
+        for keys in list_to_highlight:
+            table_list[int(keys) + 2] = color.BOLD + table_list[int(keys) + 2] + color.END
+
+        return "\n".join(table_list)
+
+
+
+    @property
+    def uva_account(self):
+        return self.__uva_account
+
+    @property
+    def codechef_account(self):
+        return self.__codechef_account
+
+    @uva_account.setter
+    def uva_account(self, uva_account):
+        self.__uva_account = uva_account
+        self.data["uva-acc"] = uva_account
+
+    @codechef_account.setter
+    def codechef_account(self, codechef_account):
+        self.__codechef_account = codechef_account
+        self.data["codechef-acc"] = codechef_account
+
+    def insert(self, website, username, password):
+        if [website, username] in self.data["accounts"].values():
+            return
+
+        new_index = self.number_of_accounts + 1
+
+        if website == "uva":
+            self.uva_account = new_index
+        elif website == "codechef":
+            self.codechef_account = new_index
+        else:
+            print("Website", website, "not supported")
+            return
+
+        self.number_of_accounts += 1
+        self.data["accounts"][new_index] = [website, username]
+
+        keyring.set_password(website, username, password)
+
+    def delete(self, key):
+        key = str(key)
+        if key not in self.data["accounts"]:
+            print("Account with given index does not exist")
+            return
+        return_value = self.data["accounts"].pop(key)
+        account_keys = [int(indices) for indices in self.data["accounts"].keys() if int(indices)>int(key)]
+        for indices in account_keys:
+            temp_value = self.data["accounts"].pop(str(indices))
+            self.data["accounts"][str(indices-1)] = temp_value
+
+            if self.uva_account == indices: self.uva_account -= 1
+            if self.codechef_account == indices: self.codechef_account-= 1
+
+        self.number_of_accounts -= 1
+
+        if self.uva_account == int(key): self.uva_account = None
+        if self.codechef_account == int(key): self.codechef_account = None
+
+        return key,return_value
+
+    def get_account(self, index):
+        index = str(index)
+        website, username = self.data["accounts"][index]
+        password = keyring.get_password(website, username)
+        return website, username, password
+
+    def set_default(self, key):
+        key = str(key)
+        website = self.data["accounts"][key][0]
+
+        if website == "uva":
+            self.uva_account = int(key)
+        elif website == "codechef":
+            self.codechef_account = int(key)
+
+
+
