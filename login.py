@@ -2,44 +2,43 @@
 # method for removing sessions- remove previous cookies by selecting radio buttons on codechef.com/session/limit
 
 def login(username="", password=""):
-
     # important libraries
-    import mechanize
+    import requests
     from bs4 import BeautifulSoup as bs
 
-    br = mechanize.Browser()
+    # logging in without credentials
+    url = "https://www.codechef.com/"
+    payload = {
+        'name': username,
+        'pass': password,
+        'form_build_id': 'form-0k32rjFWt649_E48uCImFOjVzLRUAQmCw16nVQ_nrMM',
+        'form_id': 'new_login_form',
+        'op': 'Login'
+    }
 
-    # login using login credentials
-    br.set_handle_robots(False)
-    br.set_handle_equiv(True)
-    br.set_handle_gzip(True)
-    br.set_handle_redirect(True)
-    br.set_handle_referer(True)
-
-    br.open("https://www.codechef.com")
-    br.select_form(predicate=lambda frm: 'id' in frm.attrs and frm.attrs['id'] == 'new-login-form')
-
-    br['name'] = username
-    br['pass'] = password
-
-    br.method = "POST"
-    response = br.submit()
-    # print response.read
+    session = requests.session()
+    response = session.post(url, data=payload)
 
     # removing extra sessions using simple scraping and form handling
-    while br.geturl() == 'https://www.codechef.com/session/limit':
-        br.select_form(predicate=lambda frm: 'id' in frm.attrs and frm.attrs['id'] == 'session-limit-page')
-        soup = bs(response, 'html5lib')
-        value = soup.find('input', attrs={'class','form-radio'})['value']
-        br.form['sid'] = [value]
-        br.method = "POST"
-        response = br.submit()
+    while response.url == 'https://www.codechef.com/session/limit':
+        soup = bs(response.content, 'html5lib')
+        value = soup.find('input', attrs={'class', 'form-radio'})['value']
+        form_build_id = soup.find('input', {'name': 'form_build_id'})['value']
+        form_token = soup.find('input', {'name': 'form_token'})['value']
+        print form_build_id
+        payload = {
+            'sid': value,
+            'op': 'Disconnect session',
+            'form_build_id': form_build_id,
+            'form_token': form_token,
+            'form_id': 'session_limit_page'
+        }
+        response = session.post("https://www.codechef.com/session/limit", data=payload)
 
-    return br
+    return response
 
 # how to use
 # from login import login
 # browser = login(username,password)  use this for first time login
-# html_page = browser.login("https://www.codechef.com/node")
+# html_page = response.content
 # soup = BeautifulSoup(html_page) and then further scrapping
-
