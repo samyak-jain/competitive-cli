@@ -1,10 +1,9 @@
 from codechef import CodechefSession
 
 session = CodechefSession()
-c=session.login('apuayush','**********')
-p=session.submit('RGAME','F:\projects\testcli.py','python2')
-print p.url
-print p.content
+c=session.login('username','**')
+p=session.submit('RGAME','F:\projects','python2')
+print p
 try:
     session.logout()
 except:

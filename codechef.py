@@ -10,6 +10,8 @@ class CodechefSession:
         'cpp': '44',
         'c': '11',
         'c#': '27',
+        'go': '114',
+        'javascript': '56',
         'java': '10',
         'php': '29',
         'python3': '116',
@@ -53,6 +55,14 @@ class CodechefSession:
         return response
 
     @staticmethod
+    def find_file(filename, path):
+        for root, dirs, file in os.walk(path):
+            for files in file:
+                if filename in files:
+                    return os.path.join(root, files), files
+        raise IOError("File does not exist")
+
+    @staticmethod
     def find_language(language):
         """
         to return the language code of the question to be submitted
@@ -71,8 +81,8 @@ class CodechefSession:
         :param path: The address of the solution in your system
         :return: String-submission id to be used for checking the result
         """
-        # file_open = open(path,'r')
-        # code = file_open.read()
+        file_path, file_name = CodechefSession.find_file(question_code, path)
+        code = open(file_path)
         lang = self.find_language(language)
         html_page = self.codechef_session.get(self.codechef_url + '/submit/' + question_code )
         soup = bs(html_page.content, 'html5lib')
@@ -85,7 +95,7 @@ class CodechefSession:
             'form_token': form_token,
             'form_id': 'problem_submission',
             "language": lang,
-            'files[sourcefile]': path,
+            'program': code.read(),
             'problem_code': question_code,
             'op': "Submit"
         }
