@@ -75,45 +75,51 @@ class CodechefSession:
 
 
     def submit(self, question_code, path, language):
-        """
-        This function is to submit an answer to codechef
-        :param question_code: name-code of the question whose answer u have to submit
-        :param path: The address of the solution in your system
-        :return: String-submission id to be used for checking the result
-        """
         file_path, file_name = CodechefSession.find_file(question_code, path)
-        code = open(file_path)
         lang = self.find_language(language)
         html_page = self.codechef_session.get(self.codechef_url + '/submit/' + question_code )
         soup = bs(html_page.content, 'html5lib')
+        # print soup
 
         form_build_id = soup.find('input', {'name': 'form_build_id'})['value']
         form_token = soup.find('input', {'name': 'form_token'})['value']
 
         payload ={
             'form_build_id': form_build_id,
-            'form_token': form_token,
+            "form_token": form_token,
             'form_id': 'problem_submission',
+            "files[sourcefile]": "",
             "language": lang,
-            'program': code.read(),
             'problem_code': question_code,
             'op': "Submit"
         }
 
-        response = self.codechef_session.post(CodechefSession.codechef_url + '/submit/' + question_code, data=payload)
+        file = {
+            "files[sourcefile]": open(file_path)
+        }
+
+        response = self.codechef_session.post(CodechefSession.codechef_url + '/submit/' + question_code, data=payload, files=file, verify=False)
+
         return response.url.split('/')[-1]
 
-    def chech_result(self, submission_id, question_code):
+    def check_result(self, submission_id, question_code):
         """
         returns the result of a problem submission.
-        :return: result codde
-        RA - right answer
-        WA - wrong answer
-        CE - Compilation error
-        RE - Runtime Error
+        :return: result
+        Responses
+        - right answer
+        - wrong answer
+        - Compilation error
+        - Runtime Error
         """
         response = self.codechef_session.get(CodechefSession.codechef_url + '/status/' + question_code)
-        soup = bs(response.html,'html5lib')
+        soup = bs(response.content,'html5lib')
+        result = soup.find(text=str(submission_id)).parent.parent.find('span')['title']
+        if result == "":
+            return "correct answer"
+        else:
+            return result
+
 
 
 
