@@ -3,4 +3,4 @@
 .idea
 *.bkp
 __pycache__
-test.py
+*.pyc
