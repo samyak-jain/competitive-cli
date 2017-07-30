@@ -194,6 +194,48 @@ class CodechefSession(SessionAPI):
         """
         return self.codechef_session.get(CodechefSession.codechef_url + '/logout')
 
+    def info_present_contests(self):
+        """
+        to check all present contests in codechef
+        :return: list of present contests with contest name and date
+        """
+        contests = []
+        response = self.codechef_session.get(CodechefSession.codechef_url + '/contests')
+        soup = bs(response.content,'html5lib')
+        table = soup.find_all('table', attrs={'class', 'dataTable'})[0]
+        for tr in table.find("tbody").find_all("tr"):
+            # for td in tr.find_all("td"):
+            #     print td.contents
+            contest_description = tr.find_all("td")
+            reg = {
+                'contest_name': contest_description[0].get_text(),
+                'contest_type': contest_description[1].get_text(),
+                'contest_date_start': contest_description[2].get_text(),
+                'contest_date_end': contest_description[3].get_text()
+            }
+            contests.append(reg)
+        return contests
+
+    def info_future_contests(self):
+        """
+        to check all future contests in codechef
+        :return: list of future contests with contest name and date
+        """
+        contests = []
+        response = self.codechef_session.get(CodechefSession.codechef_url + '/contests')
+        soup = bs(response.content,'html5lib')
+        table = soup.find_all('table', attrs={'class', 'dataTable'})[1]
+        for tr in table.find("tbody").find_all("tr"):
+            contest_description = tr.find_all("td")
+            reg = {
+                'contest_name': contest_description[0].get_text(),
+                'contest_type': contest_description[1].get_text(),
+                'contest_date_start': contest_description[2].get_text(),
+                'contest_date_end': contest_description[3].get_text()
+            }
+            contests.append(reg)
+        return contests
+
 
 
 
