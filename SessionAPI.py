@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup as bs
 
 
 class SessionAPI:
+    language_handler = {}
 
     @staticmethod
     def find_file(filename, path):
@@ -29,8 +30,8 @@ class SessionAPI:
 
 
 class UvaSession(SessionAPI):
-    UVA_HOST = "https://uva.onlinejudge.org/"
-    SUBMIT_PATH = UVA_HOST + "index.php?option=com_onlinejudge&Itemid=25&page=save_submission"
+    UVA_HOST = r"https://uva.onlinejudge.org/"
+    SUBMIT_PATH = UVA_HOST + r"index.php?option=com_onlinejudge&Itemid=25&page=save_submission"
     language_handler = {
         ".c": "1", "c": "1",
         ".java": "2", "java": "2",
@@ -90,7 +91,7 @@ class UvaSession(SessionAPI):
 
 
 class CodechefSession(SessionAPI):
-    codechef_url = "https://www.codechef.com"
+    codechef_url = r"https://www.codechef.com"
 
     language_handler = {
         'cpp': '44',
@@ -164,7 +165,8 @@ class CodechefSession(SessionAPI):
             "files[sourcefile]": open(file_path)
         }
 
-        response = self.codechef_session.post(CodechefSession.codechef_url + '/submit/' + question_code, data=payload, files=file, verify=False)
+        response = self.codechef_session.post(CodechefSession.codechef_url + '/submit/' + question_code, data=payload,
+                                                files=file, verify=False)
 
         return response.url.split('/')[-1]
 
@@ -237,6 +239,134 @@ class CodechefSession(SessionAPI):
         return contests
 
 
+class CodeForce(SessionAPI):
+    FORCE_HOST = r"http://codeforces.com/"
+    FORCE_LOGIN = r"http://codeforces.com/enter?back=%2F"
+    language_handler = {
+        '44': 'GNU GCC 5.1.0',
+        '43': 'GNU GCC C11 5.10',
+        '1': 'GNU G++ 5.1.0',
+        '42': 'GNU G++11 5.1.0',
+        '50': 'GNU G++14 6.2.0',
+        '2': 'Microsoft Visual C++ 2010',
+        '9': 'C# Mono 3.12.1.0',
+        '29': 'MS C# .NET 4.0.30319',
+        '28': 'D DMD32 v2.071.2',
+        '32': 'Go 1.7.3',
+        '12': 'Haskell GHC 7.8.3',
+        '36': 'Java 1.8.0_112',
+        '48': 'Kotlin 1.0.5-2',
+        '19': 'OCaml 4.02.1',
+        '3': 'Delphi 7',
+        '4': 'Free Pascal 2.6.4',
+        '13': 'Perl 5.20.1',
+        '6': 'PHP 7.0.12',
+        '7': 'Python 2.7.12',
+        '31': 'Python 3.5.2',
+        '40': 'PyPy 2.7.10 (2.6.1)',
+        '41': 'PyPy 3.2.5 (2.4.0)',
+        '8': 'Ruby 2.0.0p645',
+        '49': 'Rust 1.12.1',
+        '20': 'Scala 2.11.8',
+        '34': 'Javascript V8 4.8.0'
+    }
 
+    def __init__(self):
+        self.code_sess = requests.session()
 
+    def login(self, username, password):
+        login = self.code_sess.get(CodeForce.FORCE_LOGIN)
+        login = bs(login.text, "lxml")
+        login = login.find('form', id='linkEnterForm')
+        hidden = login.find_all('input')
+        form = {'csrf_token': hidden[0]['value'],
+                'action': 'enter',
+                'ftaa': hidden[1]['value'],
+                'bfaa': hidden[2]['value'],
+                'handle': username,
+                'password': password,
+                '_tta': ''}
+        header = {'Host': 'codeforces.com',
+                  'Origin': 'http://codeforces.com',
+                  'Referer': CodeForce.FORCE_LOGIN,
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36'}
+        return self.code_sess.post(CodeForce.FORCE_LOGIN, data=form, headers=header)
 
+    # lists the available compiler According to the id and name
+    @staticmethod
+    def list_compiler():
+        for i in CodeForce.language_handler:
+            print(i, ' :', CodeForce.language_handler[i])
+
+    # prompt the user to choose compiler id
+    @staticmethod
+    def choose_compiler(compilerid):
+        if compilerid not in CodeForce.language_handler.keys():
+            print("Invalid choice")
+            return False
+        else:
+            return compilerid
+
+    # check result of the LATEST submission made
+    def check_result(self, username):
+        response = self.code_sess.get(CodeForce.FORCE_HOST + "submissions/" + username)
+        soup = bs(response.text, 'lxml')
+        result = soup.find_all('span', class_='submissionVerdictWrapper')
+        return result[0].text
+
+    # finds the csrf_token for the logout link and signs out user
+    def logout(self, username):
+        loginpage = self.code_sess.get(CodeForce.FORCE_HOST)
+        soup = bs(loginpage.text, "lxml")
+        csrf = soup.find('a', href='/profile/'+username)
+        logout_link = "http://codeforces.com"+csrf.find_next_sibling('a')['href']
+        self.code_sess.get(logout_link)
+
+    def submit(self, question_id, path):
+        file_path, filename = CodeForce.find_file(question_id, path)
+        submit_link = CodeForce.FORCE_HOST+"problemset/submit"
+        sub_request = self.code_sess.get(submit_link)
+        subsoup = bs(sub_request.text, 'lxml')
+        hidden = subsoup.find('form', class_='submit-form')
+        hidden = hidden.find_all('input')
+
+        # uncomment this to list compiler list_compiler()
+        compiler = input('Enter The Compiler Id according to the Compiler id list')
+        if CodeForce.choose_compiler(compiler):
+            form = {'csrf_token': hidden[0]['value'],
+                    'ftaa': hidden[1]['value'],
+                    'bfaa': hidden[2]['value'],
+                    'action': 'submitSolutionFormSubmitted',
+                    'submittedProblemCode': question_id,
+                    'programTypeId': compiler,
+                    'source': '',
+                    'tabsize': hidden[6]['value'],
+                    'sourceFile': open(file_path),
+                    '_tta': ''}
+            response = self.code_sess.post(submit_link, data=form)
+            if response == CodeForce.FORCE_HOST+"problemset/status":
+                print("Submitted Successfully")
+            else:
+                print("Error submitting")
+
+    # List out all the submissions made till date
+    def display_sub(self, username):
+        submit_link = CodeForce.FORCE_HOST + "submissions/" + username
+        submit_page = self.code_sess.get(submit_link)
+        submit_soup = bs(submit_page.text, 'lxml')
+        table = submit_soup.find_all('tr')
+        table_data = [["Submission Id", "When", "Who", "Problem", "Language", "Verdict", "Time", "Memory"]]
+        for row in range(26, len(table)):
+            new_row = list()
+            for element in table[row].find_all('td'):
+                new_row.append(element.text.remove(" "))
+            table_data.append(new_row)
+
+        return table_data
+
+    @staticmethod
+    def return_question_url(questionid):
+        question_link = CodeForce.FORCE_HOST + "problemset/problem/" + questionid[:3] + "/" + questionid[3:]
+        return question_link
+
+# Spot any errors? => contact me ASAP
