@@ -228,6 +228,64 @@ class CodechefSession(SessionAPI):
 
 # To-do : submit for contest just check if the contest is in present contests or not if then submit
 
+class CodeForce(SessionAPI):
+    FORCE_HOST = r"http://codeforces.com/"
+    FORCE_LOGIN = r"http://codeforces.com/enter?back=%2F"
+    language_handler = {
+        '44': 'GNU GCC 5.1.0',
+        '43': 'GNU GCC C11 5.10',
+        '1': 'GNU G++ 5.1.0',
+        '42': 'GNU G++11 5.1.0',
+        '50': 'GNU G++14 6.2.0',
+        '2': 'Microsoft Visual C++ 2010',
+        '9': 'C# Mono 3.12.1.0',
+        '29': 'MS C# .NET 4.0.30319',
+        '28': 'D DMD32 v2.071.2',
+        '32': 'Go 1.7.3',
+        '12': 'Haskell GHC 7.8.3',
+        '36': 'Java 1.8.0_112',
+        '48': 'Kotlin 1.0.5-2',
+        '19': 'OCaml 4.02.1',
+        '3': 'Delphi 7',
+        '4': 'Free Pascal 2.6.4',
+        '13': 'Perl 5.20.1',
+        '6': 'PHP 7.0.12',
+        '7': 'Python 2.7.12',
+        '31': 'Python 3.5.2',
+        '40': 'PyPy 2.7.10 (2.6.1)',
+        '41': 'PyPy 3.2.5 (2.4.0)',
+        '8': 'Ruby 2.0.0p645',
+        '49': 'Rust 1.12.1',
+        '20': 'Scala 2.11.8',
+        '34': 'Javascript V8 4.8.0'
+    }
+
+    def __init__(self):
+        self.code_sess = requests.session()
+
+    def login(self, username, password):
+        login = self.code_sess.get(CodeForce.FORCE_LOGIN)
+        login = bs(login.text, "lxml")
+        login = login.find('form', id='linkEnterForm')
+        hidden = login.find_all('input')
+        form = {'csrf_token': hidden[0]['value'],
+                'action': 'enter',
+                'ftaa': hidden[1]['value'],
+                'bfaa': hidden[2]['value'],
+                'handle': username,
+                'password': password,
+                '_tta': ''}
+        header = {'Host': 'codeforces.com',
+                  'Origin': 'http://codeforces.com',
+                  'Referer': CodeForce.FORCE_LOGIN,
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36'}
+        return self.code_sess.post(CodeForce.FORCE_LOGIN, data=form, headers=header)
+
+    # lists the available compiler According to the id and name
+    @staticmethod
+    def list_compiler():
+        for i in CodeForce.language_handler:
+            print(i, ' :', CodeForce.language_handler[i])
 
 class CodeForce(SessionAPI):
     FORCE_HOST = r"http://codeforces.com/"
@@ -354,10 +412,10 @@ class CodeForce(SessionAPI):
 
         return table_data
 
+
     @staticmethod
     def return_question_url(questionid):
         question_link = CodeForce.FORCE_HOST + "problemset/problem/" + questionid[:3] + "/" + questionid[3:]
         return question_link
-
 
 # Spot any errors? => contact me ASAP
