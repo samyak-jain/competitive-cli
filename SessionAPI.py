@@ -130,18 +130,22 @@ class CodechefSession(SessionAPI):
             response = self.codechef_session.post(CodechefSession.codechef_url + '/session/limit', data=payload)
         return response
 
-    def submit(self, question_code, path=".",language=None):
-        contest = ""
-        payload = dict()
+    def submit(self, question_code, path=".",language=None, contest=""):
+
+        for contests in self.info_present_contests():
+            if(contests['contest_name'] == contest):
+                contest = contest+'/'
 
         # print self.info_present_contests()
         file_path, file_name = CodechefSession.find_file(question_code, path)
         lang = CodechefSession.language_handler[language]
-        response = self.codechef_session.get(self.codechef_url + contest + '/submit/' + question_code )
+        response = self.codechef_session.get(self.codechef_url  + '/submit/' + contest + question_code )
         html_page = lxml.html.fromstring(response.text)
         hidden_inputs = html_page.xpath(r'//form//input[@type="hidden"]')
+        print hidden_inputs
         payload = {i.attrib['name']: i.attrib['value'] for i in hidden_inputs}
-        payload['language'] = lang
+        if contest == "":
+            payload['language'] = lang
         payload['problem_code'] = question_code
         payload['op'] = 'Submit'
 
@@ -221,6 +225,8 @@ class CodechefSession(SessionAPI):
             }
             contests.append(reg)
         return contests
+
+# To-do : submit for contest just check if the contest is in present contests or not if then submit
 
 
 class CodeForce(SessionAPI):
@@ -352,5 +358,6 @@ class CodeForce(SessionAPI):
     def return_question_url(questionid):
         question_link = CodeForce.FORCE_HOST + "problemset/problem/" + questionid[:3] + "/" + questionid[3:]
         return question_link
+
 
 # Spot any errors? => contact me ASAP
