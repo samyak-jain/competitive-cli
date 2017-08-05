@@ -5,7 +5,7 @@
 - [x] read template files
 - [ ] create relevant files
 - [ ] submit solution along with feedback
-- [ ] uva debug api
+- [x] uva debug api
 - [x] check all solutions submitted
 - [x] work on the same things for codechef
 - [ ] Add interactive mode

@@ -91,7 +91,6 @@ class TemplateManager(PreferenceManager):
         return "\n".join(table_list)
 
 
-
     @property
     def uva_template(self):
         return self.__uva_template
