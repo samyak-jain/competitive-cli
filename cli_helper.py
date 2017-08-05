@@ -41,6 +41,12 @@ class PreferenceManager:
     def update(self, key, value):
         self.data[key] = value
 
+    def update_browser(self, browser):
+        self.update("browser", browser)
+
+    def update_mode(self, mode):
+        self.update("mode", mode)
+
     def delete(self, key):
         try:
             return_value = self.data[key]
@@ -63,10 +69,6 @@ class TemplateManager(PreferenceManager):
         self.uva_template = self.data["uva-tpl"]
         self.codechef_template = self.data["codechef-tpl"]
         self.common_template = self.data["common-tpl"]
-
-    def __repr__(self):
-        return f"TemplateManager(number_of_templates={self.number_of_templates!r},uva_template={self.uva_template!r}, \
-        codechef_template={self.codechef_template!r},common_template={self.common_template!r})"
 
     def __str__(self):
         if len(self.data["templates"]) == 0:
@@ -187,10 +189,6 @@ class AccountManager(PreferenceManager):
 
         self.uva_account = self.data["uva-acc"]
         self.codechef_account = self.data["codechef-acc"]
-
-    def __repr__(self):
-        return f"AccountManager(number_of_accounts={self.number_of_accounts!r},uva_account={self.uva_account!r}, \
-                 codechef_account={self.codechef_account!r})"
 
     def __str__(self):
         if len(self.data["accounts"]) == 0:
