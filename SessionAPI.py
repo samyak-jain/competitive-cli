@@ -317,11 +317,12 @@ class CodeForce(SessionAPI):
         response = self.code_sess.get(CodeForce.FORCE_HOST + "submissions/" + username)
         soup = bs(response.text, 'lxml')
         table = soup.find_all('tr')
-        row =  [["Submission Id", "When", "Who", "Problem", "Language", "Verdict", "Time", "Memory"]]
+        table_data =  [["Submission Id", "When", "Who", "Problem", "Language", "Verdict", "Time", "Memory"]]
+        row = list()
         for element in table[26].find_all('td'):
             row.append("".join(element.text.split()))
         table_data.append(row)
-        return row
+        return table_data
 
     # finds the csrf_token for the logout link and signs out user
     def logout(self, username):
