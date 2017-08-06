@@ -317,7 +317,7 @@ class CodeForce(SessionAPI):
         response = self.code_sess.get(CodeForce.FORCE_HOST + "submissions/" + username)
         soup = bs(response.text, 'lxml')
         table = soup.find_all('tr')
-        row = list()
+        row =  [["Submission Id", "When", "Who", "Problem", "Language", "Verdict", "Time", "Memory"]]
         for element in table[26].find_all('td'):
             row.append("".join(element.text.split()))
         table_data.append(row)
