@@ -383,7 +383,7 @@ class CodeForce(SessionAPI):
         table_data = self.display_sub(username)
         data = list()
         for row in table_data[1:]:
-            if questionid in row[3]:
+            if questionid == row[3]:
                 data.append(row)
         return data
 
