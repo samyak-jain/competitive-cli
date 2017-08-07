@@ -2,6 +2,7 @@ import requests
 import lxml.html
 import os
 from bs4 import BeautifulSoup as bs
+import json
 
 
 class SessionAPI:
@@ -111,12 +112,15 @@ class CodechefSession(SessionAPI):
         self.codechef_session = requests.session()
 
     def login(self, username="", password=""):
+
         # logging in without credentials
         response_page = self.codechef_session.get(CodechefSession.codechef_url)
         html_page = lxml.html.fromstring(response_page.text)
-        hidden_inputs = html_page.xpath(r'//form//input[@type="hidden"]')
-        # print hidden_inputs
-        payload = {i.attrib["name"]: i.attrib["value"] for i in hidden_inputs}
+        hidden_inputs = html_page.xpath(
+            r'//form//input[@type="hidden"]'
+        )
+        payload = {i.attrib["name"]: i.attrib["value"]
+                   for i in hidden_inputs}
         payload['name'] = username
         payload['pass'] = password
         payload['op'] = 'Login'
@@ -131,22 +135,25 @@ class CodechefSession(SessionAPI):
             response = self.codechef_session.post(CodechefSession.codechef_url + '/session/limit', data=payload)
         return response
 
-    def submit(self, question_code, path=".", language=None, contest=""):
-
+    def submit(self, question_code, path=".", language=None):
+        contest = ""
         for contests in self.info_present_contests():
-            if (contests['contest_name'] == contest):
-                contest = contest + '/'
+            for contest_ques in self.ques_in_contest(contests['contest_name']):
+                if contest_ques == question_code:
+                    contest = '/' + contests['contest_name']
+                    break
 
-        # print self.info_present_contests()
+
         file_path, file_name = CodechefSession.find_file(question_code, path)
         lang = CodechefSession.language_handler[language]
-        response = self.codechef_session.get(self.codechef_url + '/submit/' + contest + question_code)
+        response = self.codechef_session.get(
+            self.codechef_url + contest +'/submit/' + question_code
+        )
+
         html_page = lxml.html.fromstring(response.text)
         hidden_inputs = html_page.xpath(r'//form//input[@type="hidden"]')
-        # print hidden_inputs
         payload = {i.attrib['name']: i.attrib['value'] for i in hidden_inputs}
-        if contest == "":
-            payload['language'] = lang
+        payload['language'] = lang
         payload['problem_code'] = question_code
         payload['op'] = 'Submit'
 
@@ -154,10 +161,24 @@ class CodechefSession(SessionAPI):
             "files[sourcefile]": open(file_path)
         }
 
-        response = self.codechef_session.post(CodechefSession.codechef_url + '/submit/' + question_code, data=payload,
-                                              files=file, verify=False)
+        response = self.codechef_session.post(CodechefSession.codechef_url + contest + '/submit/' + question_code,
+                                              data=payload,
+                                              files=file,
+                                              verify=False
+                                              )
 
-        return response.url.split('/')[-1]
+        return int(response.url.split('/')[-1])
+
+    def ques_in_contest(self, contest_name):
+        response = json.loads(
+            self.codechef_session.get(
+                CodechefSession.codechef_url + '/api/contests/'+contest_name
+            ).text
+        )
+
+        return response['problems'].keys()
+
+
 
     def check_result(self, submission_id, question_code):
         """
@@ -170,7 +191,7 @@ class CodechefSession(SessionAPI):
         - Runtime Error
         """
         response = self.codechef_session.get(CodechefSession.codechef_url + '/status/' + question_code)
-        soup = bs(response.content, 'html5lib')
+        soup = bs(response.text,'lxml')
         result = soup.find(text=str(submission_id)).parent.parent.find('span')['title']
         if result == "":
             return "correct answer"
@@ -225,6 +246,20 @@ class CodechefSession(SessionAPI):
             }
             contests.append(reg)
         return contests
+
+    def question_url(self, question_code):
+        contest = ""
+        for contests in self.info_present_contests():
+            for contest_ques in self.ques_in_contest(contests['contest_name']):
+                if contest_ques == question_code:
+                    contest = '/' + contests['contest_name']
+                    break
+
+        url = self.codechef_url + \
+             contest + \
+            '/problems/' + \
+              question_code
+        return url
 
 
 # To-do : submit for contest just check if the contest is in present contests or not if then submit
