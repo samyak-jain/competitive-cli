@@ -33,6 +33,8 @@ class SessionAPI:
 class UvaSession(SessionAPI):
     UVA_HOST = r"https://uva.onlinejudge.org/"
     SUBMIT_PATH = UVA_HOST + r"index.php?option=com_onlinejudge&Itemid=25&page=save_submission"
+    UHUNT_API = r"http://uhunt.felix-halim.net/api/p/num/"
+
     language_handler = {
         ".c": "1", "c": "1",
         ".java": "2", "java": "2",
@@ -91,6 +93,12 @@ class UvaSession(SessionAPI):
         return self.uva_session.post(UvaSession.SUBMIT_PATH, data=payload, headers=updated_headers)
 
         # TODO: Check for success
+
+    def get_question_url(self, probID):
+        prob_json = json.loads(
+            requests.get(UvaSession.UHUNT_API + str(probID)).text
+        )
+        return r"https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=8&page=show_problem&problem=" + str(prob_json["pid"])
 
 
 class CodechefSession(SessionAPI):
