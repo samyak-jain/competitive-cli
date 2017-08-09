@@ -8,7 +8,7 @@ It is a command line interface that lets a user interact with websites including
 
 Support for more websites might be added later
 
-Also planning on making an api for UVA Debug to help users debug their problems
+There is an api for UVA Debug to help users debug their problems
 
 ## Features
 

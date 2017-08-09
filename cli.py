@@ -48,6 +48,13 @@ def login():
     pass
 
 
+def soln():
+    pass
+
+
+def debug():
+    pass
+
 def parse(query, pref, tpl, acc):
     cmds = query.split(' ')
     flags = []
@@ -68,7 +75,7 @@ def parse(query, pref, tpl, acc):
 
         'view':
             {
-                'question': open_question, 'answers': 1, 'tpl': lambda: str(tpl_manager),
+                'question': open_question, 'solutions': soln, 'tpl': lambda: str(tpl_manager),
                 'accounts': lambda: str(acc_manager)
             },
 
@@ -90,7 +97,9 @@ def parse(query, pref, tpl, acc):
         'update':
             {
                 'account': acc.update
-            }
+            },
+
+        'debug': debug
     }
 
     iterative_commands = commands[new_cmds[0]]
