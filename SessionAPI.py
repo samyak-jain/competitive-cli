@@ -118,10 +118,12 @@ class CodechefSession(SessionAPI):
 
     def __init__(self):
         self.codechef_session = requests.session()
+        self.username=""
 
     def login(self, username="", password=""):
 
         # logging in without credentials
+        self.username = username
         response_page = self.codechef_session.get(CodechefSession.codechef_url)
         html_page = lxml.html.fromstring(response_page.text)
         hidden_inputs = html_page.xpath(
@@ -169,7 +171,10 @@ class CodechefSession(SessionAPI):
             "files[sourcefile]": open(file_path)
         }
 
-        response = self.codechef_session.post(CodechefSession.codechef_url + contest + '/submit/' + question_code,
+        response = self.codechef_session.post(CodechefSession.codechef_url + \
+                                              contest +\
+                                              '/submit/' +\
+                                              question_code,
                                               data=payload,
                                               files=file,
                                               verify=False
@@ -269,8 +274,42 @@ class CodechefSession(SessionAPI):
               question_code
         return url
 
+    def user_stats(self, prob_code="", contest_code="", year="", language="All"):
+        """
+        To get submission status... enter the above fields for filtering
+        :param prob_code: (optional) prob_code
+        :param contest_code: (optional) contest_code
+        :param year:  (optional)
+        :param language: (optional)
+        :return: list of submissions with question status
+        """
+        param = {
+            'pcode':prob_code,
+            'ccode':contest_code,
+            'year':year,
+            'language':language,
+            'handle':self.username
+        }
+        response = self.codechef_session.get(self.codechef_url+'/submissions',
+                                  params=param)
+        soup = bs(response.content,'html5lib')
+        table = soup.find('table', attrs={'class', 'dataTable'})
+        stats = []
+        for tr in table.find('tbody').findAll('tr'):
+            td = tr.find_all('td')
+            stats.append(
+                {
+                    'id':td[0].get_text(),
+                    'date':td[1].get_text(),
+                    'question':td[3].get_text(),
+                    'contest':td[4].get_text(),
+                    'status':td[5].find('span')['title']
+                }
+            )
+        return stats
 
-# To-do : submit for contest just check if the contest is in present contests or not if then submit
+
+
 
 
 class CodeForce(SessionAPI):
