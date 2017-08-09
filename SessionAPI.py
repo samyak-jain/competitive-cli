@@ -94,7 +94,8 @@ class UvaSession(SessionAPI):
 
         # TODO: Check for success
 
-    def get_question_url(self, probID):
+    @staticmethod
+    def get_question_url(probID):
         prob_json = json.loads(
             requests.get(UvaSession.UHUNT_API + str(probID)).text
         )
@@ -118,7 +119,7 @@ class CodechefSession(SessionAPI):
 
     def __init__(self):
         self.codechef_session = requests.session()
-        self.username=""
+        self.username = ""
 
     def login(self, username="", password=""):
 
@@ -135,7 +136,7 @@ class CodechefSession(SessionAPI):
         payload['pass'] = password
         payload['op'] = 'Login'
         response = self.codechef_session.post(CodechefSession.codechef_url, data=payload)
-        #
+
         # removing extra sessions using simple scraping and form handling
         while response.url == CodechefSession.codechef_url + '/session/limit':
             html_page = lxml.html.fromstring(response.text)
@@ -153,11 +154,10 @@ class CodechefSession(SessionAPI):
                     contest = '/' + contests['contest_name']
                     break
 
-
         file_path, file_name = CodechefSession.find_file(question_code, path)
         lang = CodechefSession.language_handler[language]
         response = self.codechef_session.get(
-            self.codechef_url + contest +'/submit/' + question_code
+            self.codechef_url + contest + '/submit/' + question_code
         )
 
         html_page = lxml.html.fromstring(response.text)
@@ -171,10 +171,7 @@ class CodechefSession(SessionAPI):
             "files[sourcefile]": open(file_path)
         }
 
-        response = self.codechef_session.post(CodechefSession.codechef_url + \
-                                              contest +\
-                                              '/submit/' +\
-                                              question_code,
+        response = self.codechef_session.post(CodechefSession.codechef_url + contest + '/submit/' + question_code,
                                               data=payload,
                                               files=file,
                                               verify=False
@@ -185,13 +182,11 @@ class CodechefSession(SessionAPI):
     def ques_in_contest(self, contest_name):
         response = json.loads(
             self.codechef_session.get(
-                CodechefSession.codechef_url + '/api/contests/'+contest_name
+                CodechefSession.codechef_url + '/api/contests/' + contest_name
             ).text
         )
 
         return response['problems'].keys()
-
-
 
     def check_result(self, submission_id, question_code):
         """
@@ -207,14 +202,14 @@ class CodechefSession(SessionAPI):
         soup = bs(response.text,'lxml')
         result = soup.find(text=str(submission_id)).parent.parent.find('span')['title']
         if result == "":
-            return "correct answer"
+            return "Correct Answer"
         else:
             return result
 
     def logout(self):
         """
         logout
-        :return: nothing
+        :return: logout response
         """
         return self.codechef_session.get(CodechefSession.codechef_url + '/logout')
 
@@ -240,26 +235,6 @@ class CodechefSession(SessionAPI):
             contests.append(reg)
         return contests
 
-    def info_future_contests(self):
-        """
-        to check all future contests in codechef
-        :return: list of future contests with contest name and date
-        """
-        contests = []
-        response = self.codechef_session.get(CodechefSession.codechef_url + '/contests')
-        soup = bs(response.content, 'html5lib')
-        table = soup.find_all('table', attrs={'class', 'dataTable'})[1]
-        for tr in table.find("tbody").find_all("tr"):
-            contest_description = tr.find_all("td")
-            reg = {
-                'contest_name': contest_description[0].get_text(),
-                'contest_type': contest_description[1].get_text(),
-                'contest_date_start': contest_description[2].get_text(),
-                'contest_date_end': contest_description[3].get_text()
-            }
-            contests.append(reg)
-        return contests
-
     def question_url(self, question_code):
         contest = ""
         for contests in self.info_present_contests():
@@ -268,10 +243,7 @@ class CodechefSession(SessionAPI):
                     contest = '/' + contests['contest_name']
                     break
 
-        url = self.codechef_url + \
-             contest + \
-            '/problems/' + \
-              question_code
+        url = self.codechef_url + contest + '/problems/' + question_code
         return url
 
     def user_stats(self, prob_code="", contest_code="", year="", language="All"):
@@ -307,9 +279,6 @@ class CodechefSession(SessionAPI):
                 }
             )
         return stats
-
-
-
 
 
 class CodeForce(SessionAPI):
@@ -399,7 +368,7 @@ class CodeForce(SessionAPI):
         response = self.code_sess.get(CodeForce.FORCE_HOST + "submissions/" + username)
         soup = bs(response.text, 'lxml')
         table = soup.find_all('tr')
-        table_data =  [["Submission Id", "When", "Who", "Problem", "Language", "Verdict", "Time", "Memory"]]
+        table_data = [["Submission Id", "When", "Who", "Problem", "Language", "Verdict", "Time", "Memory"]]
         row = list()
         for element in table[26].find_all('td'):
             row.append("".join(element.text.split()))
@@ -470,21 +439,23 @@ class CodeForce(SessionAPI):
         return data
 
     @staticmethod
-    def return_question_url(questionid):
+    def question_url(questionid):
         question_link = CodeForce.FORCE_HOST + "problemset/problem/" + questionid[:3] + "/" + questionid[3:]
         return question_link
 
-    def user_status(self, username):
-        info_page = self.code_sess.get(CodeForce.FORCE_HOST+"profile/"+username)
+    def user_stats(self, username):
+        info_page = self.code_sess.get(CodeForce.FORCE_HOST + "profile/" + username)
         info_soup = bs(info_page.text, 'lxml')
         info_div = info_soup.find('div', class_='info')
         user_rank = info_div.find('div', class_='user-rank').text.strip()
         li = info_div.find_all('li')
         table_data = self.display_sub(username)
         solved = 0
+
         for row in table_data[1:]:
             if row[5] == 'Accepted':
-                solved+=1
+                solved += 1
+
         user_info = {
             'user_rank': user_rank,
             'Contribution': li[0].span.text,
@@ -493,5 +464,4 @@ class CodeForce(SessionAPI):
             'Registered': li[6].span.text.strip(),
             'solved-questions': solved
         }
-        for i in user_info:
-            print(i+': '+user_info[i])
+        return user_info

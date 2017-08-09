@@ -55,6 +55,11 @@ def soln():
 def debug():
     pass
 
+
+def setweb():
+    pass
+
+
 def parse(query, pref, tpl, acc):
     cmds = query.split(' ')
     flags = []
@@ -70,7 +75,7 @@ def parse(query, pref, tpl, acc):
 
         'set':
             {
-                'browser': pref.update_browser, 'mode': pref.update_mode
+                'browser': pref.update_browser, 'mode': pref.update_mode, 'acc': setweb
             },
 
         'view':
@@ -87,6 +92,7 @@ def parse(query, pref, tpl, acc):
             {
                 'tpl': tpl.insert, 'accounts': acc.insert, 'file': create
             },
+
         'delete':
             {
                 'tpl': tpl.delete, 'accounts': acc.delete
