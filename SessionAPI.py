@@ -114,7 +114,32 @@ class CodechefSession(SessionAPI):
         'java': '10',
         'php': '29',
         'python3': '116',
-        'python2': '4'
+        'python2': '4',
+        'ada': '7',
+        'assembler': '13',
+        'bash': '28',
+        'ocaml': '8',
+        'clojure': '111',
+        'clips': '14',
+        'd':'20',
+        'erlang': '36',
+        'fortran': '5',
+        'f#': '124',
+        'haskell': '21',
+        'icon': '16',
+        'clisp': '32',
+        'lua': '26',
+        'nice': '25',
+        'pascal': '22',
+        'perl': '3',
+        'perl6': '4',
+        'pypy': '99',
+        'scala': '39',
+        'ruby': '17',
+        'text': '62',
+        'tcl': '38',
+        'whitespace': '6'
+
     }
 
     def __init__(self):
@@ -202,7 +227,9 @@ class CodechefSession(SessionAPI):
         result = ""
         unwanted_results = ['compiling..','running..','waiting..','running judge..']
         while id_location == None or result in unwanted_results:
-            response = self.codechef_session.get(CodechefSession.codechef_url + '/status/' + question_code)
+            response = self.codechef_session.get(CodechefSession.codechef_url + \
+                                                 '/status/' + \
+                                                 question_code)
             soup = bs(response.text,'html5lib')
             id_location = soup.find(text=str(submission_id))
             try:
@@ -287,6 +314,35 @@ class CodechefSession(SessionAPI):
                 }
             )
         return stats
+
+    def user_stats(self):
+        import re
+        response = requests.get(CodechefSession.codechef_url + \
+                     '/users/' + \
+                     self.username
+                     )
+        print response.url
+        soup = bs(response.content,'html5lib')
+        name = soup.findAll('h2')[-1].get_text()
+        username = self.username
+        country = soup.find('span', attrs={'class','user-country-name'}).get_text()
+        codechef_rating = soup.find('div',attrs={'class','rating-number'}).get_text()
+        rank = soup.find('div',attrs={'class','rating-ranks'}).findAll('li')
+        global_rank = rank[0].get_text().split()[0]
+        country_rank = rank[1].get_text().split()[0]
+        solved = soup.find('h3', text="Problems Solved").parent.findAll('h5')
+        fully_solved = "".join(re.findall(r'\d+', solved[0].get_text()))
+        partially_solved = "".join(re.findall(r'\d+', solved[1].get_text()))
+        return {
+            'name':name,
+            'username':username,
+            'country':country,
+            'codechef-rating':codechef_rating,
+            'global-rank':global_rank,
+            'country-rank':country_rank,
+            'completely solved questions':fully_solved,
+            'partially solved question':partially_solved
+        }
 
 
 class CodeForce(SessionAPI):
@@ -473,3 +529,4 @@ class CodeForce(SessionAPI):
             'solved-questions': solved
         }
         return user_info
+
