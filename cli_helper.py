@@ -248,6 +248,16 @@ class AccountManager(PreferenceManager):
 
         keyring.set_password(website, username, password)
 
+    def update(self, key, password):
+        key = str(key)
+        if key not in self.data["accounts"]:
+            print("Account with given index does not exist")
+            return
+        website, username = self.data["accounts"][key]
+        keyring.delete_password(website, username)
+        keyring.set_password(website, username, password)
+        return
+
     def delete(self, key):
         key = str(key)
         if key not in self.data["accounts"]:
@@ -266,6 +276,7 @@ class AccountManager(PreferenceManager):
 
         if self.uva_account == int(key): self.uva_account = None
         if self.codechef_account == int(key): self.codechef_account = None
+        keyring.delete_password(*return_value)
 
         return key,return_value
 
