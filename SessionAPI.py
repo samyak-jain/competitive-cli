@@ -149,7 +149,7 @@ class CodechefSession(SessionAPI):
     def submit(self, question_code, path=".", language=None):
         contest = ""
         for contests in self.info_present_contests():
-            for contest_ques in self.ques_in_contest(contests['contest_name']):
+            for contest_ques in CodechefSession.ques_in_contest(contests['contest_name']):
                 if contest_ques == question_code:
                     contest = '/' + contests['contest_name']
                     break
@@ -178,11 +178,12 @@ class CodechefSession(SessionAPI):
                                               )
 
         return int(response.url.split('/')[-1])
-
-    def ques_in_contest(self, contest_name):
+    
+    @staticmethod
+    def ques_in_contest(contest_name):
         response = json.loads(
-            self.codechef_session.get(
-                CodechefSession.codechef_url + '/api/contests/' + contest_name
+            requests.get(
+                CodechefSession.codechef_url + '/api/contests/'+contest_name
             ).text
         )
 
@@ -246,7 +247,7 @@ class CodechefSession(SessionAPI):
         url = self.codechef_url + contest + '/problems/' + question_code
         return url
 
-    def user_stats(self, prob_code="", contest_code="", year="", language="All"):
+    def display_sub(self, prob_code="", contest_code="", year="", language="All"):
         """
         To get submission status... enter the above fields for filtering
         :param prob_code: (optional) prob_code
