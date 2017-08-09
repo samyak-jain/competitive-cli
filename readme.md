@@ -4,6 +4,7 @@ It is a command line interface that lets a user interact with websites including
 
 - UVA Online Judge
 - CodeChef
+- Codeforces
 
 Support for more websites might be added later
 

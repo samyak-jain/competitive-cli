@@ -1,38 +1,118 @@
-import argparse
+import cli_helper
 import pathlib
+import SessionAPI
+import sys
 
-parser = argparse.ArgumentParser(prog="competitive-cli", description="Allows easy access to websites like uva online \
-                                                                      judge and codechef from the command line")
+
+class InteractiveShell:
+    def __init__(self, pref, tpl, acc):
+        self.active = False
+        self.pref = pref
+        self.tpl = tpl
+        self.acc = acc
+
+    def __enter__(self):
+        self.active = True
+
+        while self.active:
+            query = input("shell>> ")
+            if query == 'q':
+                self.active = False
+                break
+            else:
+                parse(query, self.pref, self.tpl, self.acc)
+
+        return self
+
+    def __exit__(self):
+        self.active = False
+
+
+def submit(probID):
+    pass
+
+
+def download(probID):
+    pass
+
+
+def create(probID):
+    pass
+
+
+def open_question(probID):
+    pass
+
+
+def login():
+    pass
+
+
+def parse(query, pref, tpl, acc):
+    cmds = query.split(' ')
+    flags = []
+    new_cmds = []
+
+    for cmd in cmds:
+        if '-' in cmd:
+            flags.append(cmd)
+        else:
+            new_cmds.append(cmd)
+
+    commands = {
+
+        'set':
+            {
+                'browser': pref.update_browser, 'mode': pref.update_mode
+            },
+
+        'view':
+            {
+                'question': open_question, 'answers': 1, 'tpl': lambda: str(tpl_manager),
+                'accounts': lambda: str(acc_manager)
+            },
+
+        'submit': submit,
+
+        'download': download,
+
+        'create':
+            {
+                'tpl': tpl.insert, 'accounts': acc.insert, 'file': create
+            },
+        'delete':
+            {
+                'tpl': tpl.delete, 'accounts': acc.delete
+            },
+
+        'login': login,
+
+        'update':
+            {
+                'account': acc.update
+            }
+    }
+
+    iterative_commands = commands[new_cmds[0]]
+    new_cmds = new_cmds[1:]
+    arguments = []
+
+    for command in new_cmds:
+        if isinstance(iterative_commands, dict):
+            try:
+                iterative_commands = iterative_commands[command]
+            except KeyError:
+                return "Invalid Command"
+        else:
+            arguments.append(command)
+
+    return iterative_commands, arguments, flags
+
+
+query = sys.argv[2:]
+# query = input()
 
 pathlib.Path(pathlib.Path.home() / "competitive-cli").mkdir(parents=True, exist_ok=True)
 
-common_parser = argparse.ArgumentParser(add_help=False)
-sub_common = common_parser.add_subparsers()
-
-login_parser = sub_common.add_parser("login")
-create_parser = sub_common.add_parser("create")
-view_parser = sub_common.add_parser("view")
-submit_parser = sub_common.add_parser("submit")
-download_parser = sub_common.add_parser("download")
-
-sub_parsers = parser.add_subparsers()
-
-uva_parser = sub_parsers.add_parser("uva", parents=[common_parser])
-codechef_parser = sub_parsers.add_parser("codechef", parents=[common_parser])
-config_parser = sub_parsers.add_parser("config")
-
-config_sub_parser = config_parser.add_subparsers()
-
-template_parser = config_sub_parser.add_parser("tpl")
-setb_parser = config_sub_parser.add_parser("set-browser")
-setm_parser = config_sub_parser.add_parser("set-mode")
-accounts_parser = config_sub_parser.add_parser("accounts")
-
-template_parser.add_argument("view")
-tpl_sub = template_parser.add_subparsers()
-tpl_create = tpl_sub.add_parser("create")
-tpl_delete = tpl_sub.add_parser("delete")
-tpl_set = tpl_sub.add_parser("set")
-
-
-args = parser.parse_args()
+with cli_helper.PreferenceManager() as pref_manager, cli_helper.TemplateManager() as tpl_manager, cli_helper.AccountManager() as acc_manager:
+    print(parse(query, pref_manager, tpl_manager, acc_manager))
