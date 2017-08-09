@@ -173,19 +173,18 @@ class CodechefSession(SessionAPI):
 
         response = self.codechef_session.post(CodechefSession.codechef_url + contest + '/submit/' + question_code,
                                               data=payload,
-                                              files=file,
-                                              verify=False
+                                              files=file
                                               )
 
-        return int(response.url.split('/')[-1])
+        sub_id = int(response.url.split('/')[-1])
+        return sub_id, self.check_result(sub_id,question_code)
     
     @staticmethod
     def ques_in_contest(contest_name):
-        response = json.loads(
-            requests.get(
+        response = requests.get(
                 CodechefSession.codechef_url + '/api/contests/'+contest_name
-            ).text
-        )
+            )
+        response = response.json()
 
         return response['problems'].keys()
 
@@ -199,9 +198,17 @@ class CodechefSession(SessionAPI):
         - Compilation error
         - Runtime Error
         """
-        response = self.codechef_session.get(CodechefSession.codechef_url + '/status/' + question_code)
-        soup = bs(response.text,'lxml')
-        result = soup.find(text=str(submission_id)).parent.parent.find('span')['title']
+        id_location = None
+        result = ""
+        unwanted_results = ['compiling..','running..','waiting..','running judge..']
+        while id_location == None or result in unwanted_results:
+            response = self.codechef_session.get(CodechefSession.codechef_url + '/status/' + question_code)
+            soup = bs(response.text,'html5lib')
+            id_location = soup.find(text=str(submission_id))
+            try:
+                result = id_location.parent.parent.find('span')['title']
+            except:
+                pass
         if result == "":
             return "Correct Answer"
         else:
@@ -239,7 +246,7 @@ class CodechefSession(SessionAPI):
     def question_url(self, question_code):
         contest = ""
         for contests in self.info_present_contests():
-            for contest_ques in self.ques_in_contest(contests['contest_name']):
+            for contest_ques in CodechefSession.ques_in_contest(contests['contest_name']):
                 if contest_ques == question_code:
                     contest = '/' + contests['contest_name']
                     break
