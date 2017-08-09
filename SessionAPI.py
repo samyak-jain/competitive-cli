@@ -473,3 +473,25 @@ class CodeForce(SessionAPI):
     def return_question_url(questionid):
         question_link = CodeForce.FORCE_HOST + "problemset/problem/" + questionid[:3] + "/" + questionid[3:]
         return question_link
+
+    def user_status(self, username):
+        info_page = self.code_sess.get(CodeForce.FORCE_HOST+"profile/"+username)
+        info_soup = bs(info_page.text, 'lxml')
+        info_div = info_soup.find('div', class_='info')
+        user_rank = info_div.find('div', class_='user-rank').text.strip()
+        li = info_div.find_all('li')
+        table_data = self.display_sub(username)
+        solved = 0
+        for row in table_data[1:]:
+            if row[5] == 'Accepted':
+                solved+=1
+        user_info = {
+            'user_rank': user_rank,
+            'Contribution': li[0].span.text,
+            li[1].text.strip()[:9]: li[1].text.strip()[10:],
+            'Last-Visit': li[5].span.text.strip(),
+            'Registered': li[6].span.text.strip(),
+            'solved-questions': solved
+        }
+        for i in user_info:
+            print(i+': '+user_info[i])
