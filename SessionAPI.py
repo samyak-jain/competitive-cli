@@ -3,7 +3,7 @@ import lxml.html
 import os
 from bs4 import BeautifulSoup as bs
 import json
-
+import datetime
 
 class SessionAPI:
     language_handler = {}
@@ -42,6 +42,27 @@ class UvaSession(SessionAPI):
         ".pas": "4", "pascal": "4",
         ".py": "6", "python": "6",
         "c++03": "3", "c++98": "3"
+    }
+
+    translator = {
+        '10': 'Submission error',
+        '15': "Can't be judged",
+        '20': 'In queue',
+        '30': 'Compile error',
+        '35': 'Restricted function',
+        '40': 'Runtime error',
+        '45': 'Output limit',
+        '50': 'Time limit',
+        '60': 'Memory limit',
+        '70': 'Wrong answer',
+        '80': 'PresentationE',
+        '90': 'Accepted',
+        '1': 'ANSI C',
+        '2': 'Java',
+        '3': 'C++',
+        '4': 'Pascal',
+        '5': 'C++11',
+        '6': 'Python'
     }
 
     def __init__(self):
@@ -92,14 +113,52 @@ class UvaSession(SessionAPI):
 
         return self.uva_session.post(UvaSession.SUBMIT_PATH, data=payload, headers=updated_headers)
 
+    def user_stats(self):
+        stat = "https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=15"
+        account = "https://uva.onlinejudge.org/index.php?option=com_comprofiler&Itemid=3"
+        stat_page = self.uva_session.get(stat)
+        stat_soup = bs(stat_page.text, 'lxml')
+        stat_table = stat_soup.find_all('table')
+        stats = stat_table[2].find('tr').find_all('td')
+        acc = self.uva_session.get(account)
+        account_soup = bs(acc.text, 'lxml')
+        account_table = account_soup.find_all('table')
+        td = account_table[3].find_all('td')
+        data = {x.text: y.text for x, y in zip(td[0::2], td[1::2])}
+        data['submissions'] = stats[0].text
+        data['Tried'] = stats[1].text
+        data['Solved'] = stats[2].text
+        data['First Sub'] = stats[3].text
+        data['Last Sub'] = stats[4].text
+        return data
         # TODO: Check for success
+
+    @staticmethod
+    def check_question_status(username, probID):
+        judge_id = requests.get("http://uhunt.felix-halim.net/api/uname2uid/"+username).text
+        prob_json = json.loads(
+            requests.get(UvaSession.UHUNT_API + str(probID)).text
+        )
+        pid = str(prob_json['pid'])
+        subs = json.loads(requests.get("http://uhunt.felix-halim.net/api/subs-pids/" + judge_id + "/" + pid).text)
+        submission_table = subs[judge_id]['subs']
+        translated_table = [['Submission ID', 'Problem ID', 'Verdict ID', 'Runtime', 'Submission Time', 'Language', 'Rank']]
+        for row in submission_table:
+            translated_row = row
+            translated_row[1] = probID
+            translated_row[2] = UvaSession.translator[row[2]]
+            translated_row[4] = datetime.datetime.fromtimestamp(int(row[4])).strftime('%Y-%m-%d %H:%M:%S')
+            translated_row[5] = UvaSession.translator[row[5]]
+            translated_table.append(translated_row)
+        return translated_table
 
     @staticmethod
     def get_question_url(probID):
         prob_json = json.loads(
             requests.get(UvaSession.UHUNT_API + str(probID)).text
         )
-        return r"https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=8&page=show_problem&problem=" + str(prob_json["pid"])
+        return r"https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=8&page=show_problem&problem=" + str(
+            prob_json["pid"])
 
 
 class CodechefSession(SessionAPI):
@@ -121,7 +180,7 @@ class CodechefSession(SessionAPI):
         'ocaml': '8',
         'clojure': '111',
         'clips': '14',
-        'd':'20',
+        'd': '20',
         'erlang': '36',
         'fortran': '5',
         'f#': '124',
@@ -202,13 +261,13 @@ class CodechefSession(SessionAPI):
                                               )
 
         sub_id = int(response.url.split('/')[-1])
-        return sub_id, self.check_result(sub_id,question_code)
-    
+        return sub_id, self.check_result(sub_id, question_code)
+
     @staticmethod
     def ques_in_contest(contest_name):
         response = requests.get(
-                CodechefSession.codechef_url + '/api/contests/'+contest_name
-            )
+            CodechefSession.codechef_url + '/api/contests/' + contest_name
+        )
         response = response.json()
 
         return response['problems'].keys()
@@ -225,12 +284,12 @@ class CodechefSession(SessionAPI):
         """
         id_location = None
         result = ""
-        unwanted_results = ['compiling..','running..','waiting..','running judge..']
+        unwanted_results = ['compiling..', 'running..', 'waiting..', 'running judge..']
         while id_location == None or result in unwanted_results:
             response = self.codechef_session.get(CodechefSession.codechef_url + \
                                                  '/status/' + \
                                                  question_code)
-            soup = bs(response.text,'html5lib')
+            soup = bs(response.text, 'html5lib')
             id_location = soup.find(text=str(submission_id))
             try:
                 result = id_location.parent.parent.find('span')['title']
@@ -291,57 +350,53 @@ class CodechefSession(SessionAPI):
         :return: list of submissions with question status
         """
         param = {
-            'pcode':prob_code,
-            'ccode':contest_code,
-            'year':year,
-            'language':language,
-            'handle':self.username
+            'pcode': prob_code,
+            'ccode': contest_code,
+            'year': year,
+            'language': language,
+            'handle': self.username
         }
-        response = self.codechef_session.get(self.codechef_url+'/submissions',
-                                  params=param)
-        soup = bs(response.content,'html5lib')
+        response = self.codechef_session.get(self.codechef_url + '/submissions', params=param)
+        soup = bs(response.content, 'html5lib')
         table = soup.find('table', attrs={'class', 'dataTable'})
         stats = []
         for tr in table.find('tbody').findAll('tr'):
             td = tr.find_all('td')
             stats.append(
                 {
-                    'id':td[0].get_text(),
-                    'date':td[1].get_text(),
-                    'question':td[3].get_text(),
-                    'contest':td[4].get_text(),
-                    'status':td[5].find('span')['title']
+                    'id': td[0].get_text(),
+                    'date': td[1].get_text(),
+                    'question': td[3].get_text(),
+                    'contest': td[4].get_text(),
+                    'status': td[5].find('span')['title']
                 }
             )
         return stats
 
     def user_stats(self):
         import re
-        response = requests.get(CodechefSession.codechef_url + \
-                     '/users/' + \
-                     self.username
-                     )
-        print response.url
-        soup = bs(response.content,'html5lib')
+        response = requests.get(CodechefSession.codechef_url + '/users/' + self.username)
+        print(response.url)
+        soup = bs(response.content, 'html5lib')
         name = soup.findAll('h2')[-1].get_text()
         username = self.username
-        country = soup.find('span', attrs={'class','user-country-name'}).get_text()
-        codechef_rating = soup.find('div',attrs={'class','rating-number'}).get_text()
-        rank = soup.find('div',attrs={'class','rating-ranks'}).findAll('li')
+        country = soup.find('span', attrs={'class', 'user-country-name'}).get_text()
+        codechef_rating = soup.find('div', attrs={'class', 'rating-number'}).get_text()
+        rank = soup.find('div', attrs={'class', 'rating-ranks'}).findAll('li')
         global_rank = rank[0].get_text().split()[0]
         country_rank = rank[1].get_text().split()[0]
         solved = soup.find('h3', text="Problems Solved").parent.findAll('h5')
         fully_solved = "".join(re.findall(r'\d+', solved[0].get_text()))
         partially_solved = "".join(re.findall(r'\d+', solved[1].get_text()))
         return {
-            'name':name,
-            'username':username,
-            'country':country,
-            'codechef-rating':codechef_rating,
-            'global-rank':global_rank,
-            'country-rank':country_rank,
-            'completely solved questions':fully_solved,
-            'partially solved question':partially_solved
+            'name': name,
+            'username': username,
+            'country': country,
+            'codechef-rating': codechef_rating,
+            'global-rank': global_rank,
+            'country-rank': country_rank,
+            'completely solved questions': fully_solved,
+            'partially solved question': partially_solved
         }
 
 
@@ -431,9 +486,14 @@ class CodeForce(SessionAPI):
     def check_result(self, username):
         response = self.code_sess.get(CodeForce.FORCE_HOST + "submissions/" + username)
         soup = bs(response.text, 'lxml')
-        table = soup.find_all('tr')
         table_data = [["Submission Id", "When", "Who", "Problem", "Language", "Verdict", "Time", "Memory"]]
         row = list()
+        trap = soup.find('span', class_='submissionVerdictWrapper').text.lower()
+        while 'running' in trap:
+            page = self.code_sess.get(CodeForce.FORCE_HOST + "submissions/" + username)
+            soup = bs(page.text, 'lxml')
+            trap = soup.find('span', class_='submissionVerdictWrapper').text.lower()
+        table = soup.find_all('tr')
         for element in table[26].find_all('td'):
             row.append("".join(element.text.split()))
         table_data.append(row)
@@ -455,7 +515,6 @@ class CodeForce(SessionAPI):
         hidden = subsoup.find('form', class_='submit-form')
         hidden = hidden.find_all('input')
 
-        # uncomment this to list compiler list_compiler()
         if not lang:
             compiler = CodeForce.find_language(filename)
         else:
@@ -529,4 +588,3 @@ class CodeForce(SessionAPI):
             'solved-questions': solved
         }
         return user_info
-
