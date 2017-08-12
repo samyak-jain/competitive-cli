@@ -1,15 +1,16 @@
-import cli_helper
+import getpass
 import pathlib
-import SessionAPI
 import sys
+
+from . import CLI_helper
+from . import SessionAPI
+
+websiteObject = None
 
 
 class InteractiveShell:
-    def __init__(self, pref, tpl, acc):
+    def __init__(self):
         self.active = False
-        self.pref = pref
-        self.tpl = tpl
-        self.acc = acc
 
     def __enter__(self):
         self.active = True
@@ -20,7 +21,7 @@ class InteractiveShell:
                 self.active = False
                 break
             else:
-                parse(query, self.pref, self.tpl, self.acc)
+                parse(query)
 
         return self
 
@@ -28,7 +29,8 @@ class InteractiveShell:
         self.active = False
 
 
-def submit(probID):
+def submit(probID, website=None):
+
     pass
 
 
@@ -44,8 +46,29 @@ def open_question(probID):
     pass
 
 
-def login():
-    pass
+def login(website=None):
+    global websiteObject
+    global acc_manager
+
+    username = input("Enter your username: ")
+    try:
+        password = getpass.getpass("Enter your password: ")
+    except getpass.GetPassWarning:
+        print("Your system is not allowing us to disable echo. We cannot read your password")
+        return
+
+    if website is None and websiteObject is None:
+        print("Website not mentioned")
+        return
+    if websiteObject is None:
+        sessionObject = SessionAPI.SessionAPI()
+        websiteObject = sessionObject.factoryMethod(website)
+
+    websiteObject.login(username, password)
+
+    acc_manager.insert(website, username, password)
+
+
 
 
 def soln():
@@ -60,7 +83,11 @@ def setweb():
     pass
 
 
-def parse(query, pref, tpl, acc):
+def settpl():
+    pass
+
+
+def parse(query):
     cmds = query.split(' ')
     flags = []
     new_cmds = []
@@ -75,7 +102,7 @@ def parse(query, pref, tpl, acc):
 
         'set':
             {
-                'browser': pref.update_browser, 'mode': pref.update_mode, 'acc': setweb
+                'browser': pref_manager.update_browser, 'mode': pref_manager.update_mode, 'acc': setweb, 'tpl': settpl
             },
 
         'view':
@@ -90,19 +117,19 @@ def parse(query, pref, tpl, acc):
 
         'create':
             {
-                'tpl': tpl.insert, 'accounts': acc.insert, 'file': create
+                'tpl': tpl_manager.insert, 'accounts': acc_manager.insert, 'file': create
             },
 
         'delete':
             {
-                'tpl': tpl.delete, 'accounts': acc.delete
+                'tpl': tpl_manager.delete, 'accounts': acc_manager.delete
             },
 
         'login': login,
 
         'update':
             {
-                'account': acc.update
+                'account': acc_manager.update
             },
 
         'debug': debug
@@ -121,13 +148,15 @@ def parse(query, pref, tpl, acc):
         else:
             arguments.append(command)
 
+    # iterative_commands(*arguments)
+
     return iterative_commands, arguments, flags
 
 
-query = sys.argv[2:]
-# query = input()
+# query = sys.argv[2:]
+query = input()
 
 pathlib.Path(pathlib.Path.home() / "competitive-cli").mkdir(parents=True, exist_ok=True)
 
-with cli_helper.PreferenceManager() as pref_manager, cli_helper.TemplateManager() as tpl_manager, cli_helper.AccountManager() as acc_manager:
-    print(parse(query, pref_manager, tpl_manager, acc_manager))
+with CLI_helper.PreferenceManager() as pref_manager, CLI_helper.TemplateManager() as tpl_manager, CLI_helper.AccountManager() as acc_manager:
+    print(parse(query))

@@ -1,3 +1,4 @@
+import re
 import requests
 import lxml.html
 import os
@@ -7,6 +8,9 @@ import datetime
 
 class SessionAPI:
     language_handler = {}
+
+    def __init__(self):
+        self.logged_in = False
 
     @staticmethod
     def find_file(filename, path):
@@ -28,6 +32,15 @@ class SessionAPI:
             return cls.language_handler[file_extension.lower()]
         except KeyError:
             print("The file extension cannot be inferred. Please manually enter the relevant language")
+
+    @staticmethod
+    def factoryMethod(website):
+        if website == 'uva':
+            return UvaSession()
+        if website == 'codechef':
+            return CodechefSession()
+        if website == 'codeforces':
+            return CodeForce()
 
 
 class UvaSession(SessionAPI):
@@ -66,6 +79,7 @@ class UvaSession(SessionAPI):
     }
 
     def __init__(self):
+        super().__init__()
         self.uva_session = requests.session()
 
     def login(self, username, password):
@@ -125,11 +139,12 @@ class UvaSession(SessionAPI):
         account_table = account_soup.find_all('table')
         td = account_table[3].find_all('td')
         data = {x.text: y.text for x, y in zip(td[0::2], td[1::2])}
-        data['submissions'] = stats[0].text
-        data['Tried'] = stats[1].text
-        data['Solved'] = stats[2].text
-        data['First Sub'] = stats[3].text
-        data['Last Sub'] = stats[4].text
+
+        list_of_headings = ["submissions", "Tried", "Solved", "First Sub", "Last Sub"]
+
+        for index, heading in enumerate(list_of_headings):
+            data[heading] = stats[index].text
+
         return data
         # TODO: Check for success
 
@@ -159,6 +174,10 @@ class UvaSession(SessionAPI):
         )
         return r"https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=8&page=show_problem&problem=" + str(
             prob_json["pid"])
+
+    @staticmethod
+    def make_default_template(template, index):
+        template.uva_template = index
 
 
 class CodechefSession(SessionAPI):
@@ -202,6 +221,7 @@ class CodechefSession(SessionAPI):
     }
 
     def __init__(self):
+        super().__init__()
         self.codechef_session = requests.session()
         self.username = ""
 
@@ -374,9 +394,8 @@ class CodechefSession(SessionAPI):
         return stats
 
     def user_stats(self):
-        import re
         response = requests.get(CodechefSession.codechef_url + '/users/' + self.username)
-        print(response.url)
+        # print(response.url)
         soup = bs(response.content, 'html5lib')
         name = soup.findAll('h2')[-1].get_text()
         username = self.username
@@ -388,6 +407,7 @@ class CodechefSession(SessionAPI):
         solved = soup.find('h3', text="Problems Solved").parent.findAll('h5')
         fully_solved = "".join(re.findall(r'\d+', solved[0].get_text()))
         partially_solved = "".join(re.findall(r'\d+', solved[1].get_text()))
+
         return {
             'name': name,
             'username': username,
@@ -398,6 +418,10 @@ class CodechefSession(SessionAPI):
             'completely solved questions': fully_solved,
             'partially solved question': partially_solved
         }
+
+    @staticmethod
+    def make_default_template(template, index):
+        template.codechef_template = index
 
 
 class CodeForce(SessionAPI):
@@ -454,6 +478,7 @@ class CodeForce(SessionAPI):
                         '.kts': '48', }
 
     def __init__(self):
+        super().__init__()
         self.code_sess = requests.session()
 
     def login(self, username, password):
