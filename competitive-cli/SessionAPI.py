@@ -6,6 +6,9 @@ from bs4 import BeautifulSoup as bs
 import json
 import datetime
 
+class WrongCredentialsError(Exception):
+    pass
+
 class SessionAPI:
     language_handler = {}
 
@@ -248,7 +251,12 @@ class CodechefSession(SessionAPI):
             payload = {i.attrib["name"]: i.attrib["value"] for i in all_inputs[::-1]}
 
             response = self.codechef_session.post(CodechefSession.codechef_url + '/session/limit', data=payload)
-        return response
+        soup = bs(response.content, 'lxml')
+        name = soup.find(text=username)
+        if name is None:
+            raise WrongCredentialsError
+        else:
+            return response
 
     def submit(self, question_code, path=".", language=None):
         contest = ""
