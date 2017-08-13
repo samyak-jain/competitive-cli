@@ -7,10 +7,6 @@ import json
 import datetime
 
 
-class WrongCredentialsError(Exception):
-    pass
-
-
 class SessionAPI:
     language_handler = {}
 
@@ -257,7 +253,7 @@ class CodechefSession(SessionAPI):
         soup = bs(response.content, 'lxml')
         name = soup.find(text=username)
         if name is None:
-            raise WrongCredentialsError
+            return None
         else:
             return response
 
