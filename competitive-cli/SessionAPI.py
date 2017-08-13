@@ -34,15 +34,14 @@ class SessionAPI:
         except KeyError:
             print("The file extension cannot be inferred. Please manually enter the relevant language")
 
-    def factory_method(self, website):
+    @staticmethod
+    def factoryMethod(website):
         if website == 'uva':
             return UvaSession()
         if website == 'codechef':
             return CodechefSession()
         if website == 'codeforces':
             return CodeForce()
-
-        return self
 
 
 class UvaSession(SessionAPI):
@@ -94,11 +93,10 @@ class UvaSession(SessionAPI):
         form["passwd"] = password
         form["remember"] = "yes"
         login_response = self.uva_session.post(UvaSession.UVA_HOST + "index.php?option=com_comprofiler&task=login",
-                                               data=form,
-                                               allow_redirects=False, headers={"referer": UvaSession.UVA_HOST})
-        return login_response
+                                               data=form, headers={"referer": UvaSession.UVA_HOST})
+        return login_response == UvaSession.UVA_HOST
 
-    def submit(self, probNum, path=".", language=None):
+    def submit(self, username, probNum, path=".", language=None):
         file_path, filename = UvaSession.find_file(probNum, path)
         probFile = open(file_path)
 
@@ -127,7 +125,31 @@ class UvaSession(SessionAPI):
             "Origin": UvaSession.UVA_HOST
         }
 
-        return self.uva_session.post(UvaSession.SUBMIT_PATH, data=payload, headers=updated_headers)
+        resp = self.uva_session.post(UvaSession.SUBMIT_PATH, data=payload, headers=updated_headers)
+        submission_id = resp.url[resp.url.find('ID')+3:]
+        return self.check_result(username, submission_id, probNum)
+
+    @staticmethod
+    def check_result(username, submission_id, probNum):
+        min_id = str(int(submission_id)-1)
+        judge_id = requests.get("http://uhunt.felix-halim.net/api/uname2uid/" + username).text
+        check = json.loads(requests.get('http://uhunt.felix-halim.net/api/subs-user/'+judge_id+'/'+min_id))
+        subs = check['subs']
+        translated_table = [
+            ['Submission ID', 'Problem ID', 'Verdict ID', 'Runtime', 'Submission Time', 'Language', 'Rank']]
+        if not subs[0]:
+            return "Error Submitting"
+        else:
+            while subs[0][2] in ['0', '20']:
+                check = json.loads(requests.get('http://uhunt.felix-halim.net/api/subs-user/' + judge_id + '/' + min_id))
+                subs = check['subs']
+            translated_row = subs
+            translated_row[1] = probNum
+            translated_row[2] = UvaSession.translator[subs[0][2]]
+            translated_row[4] = datetime.datetime.fromtimestamp(int(subs[0][4])).strftime('%Y-%m-%d %H:%M:%S')
+            translated_row[5] = UvaSession.translator[subs[0][5]]
+            translated_table.append(translated_row)
+        return translated_table
 
     def user_stats(self):
         stat = "https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=15"
@@ -148,7 +170,6 @@ class UvaSession(SessionAPI):
             data[heading] = stats[index].text
 
         return data
-        # TODO: Check for success
 
     @staticmethod
     def check_question_status(username, probID):
@@ -178,8 +199,8 @@ class UvaSession(SessionAPI):
             prob_json["pid"])
 
     @staticmethod
-    def get_website():
-        return "uva"
+    def make_default_template(template, index):
+        template.uva_template = index
 
 
 class CodechefSession(SessionAPI):
@@ -430,10 +451,6 @@ class CodechefSession(SessionAPI):
     def make_default_template(template, index):
         template.codechef_template = index
 
-    @staticmethod
-    def get_website():
-        return "codechef"
-
 
 class CodeForce(SessionAPI):
     FORCE_HOST = r"http://codeforces.com/"
@@ -516,10 +533,7 @@ class CodeForce(SessionAPI):
         login_response = self.code_sess.post(CodeForce.FORCE_LOGIN, data=form, headers=header)
         login_soup = bs(login_response.text, 'lxml')
 
-        if username == login_soup.find('a', href='/profile/' + username).text:
-            self.logged_in = True
-        else:
-            return "Error loggin in"
+        return username == login_soup.find('a', href='/profile/' + username).text
 
     # check result of the LATEST submission made
     def check_result(self, username):
@@ -627,7 +641,3 @@ class CodeForce(SessionAPI):
             'solved-questions': solved
         }
         return user_info
-
-    @staticmethod
-    def get_website():
-        return "codeforces"
