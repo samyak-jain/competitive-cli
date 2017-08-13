@@ -6,8 +6,10 @@ from bs4 import BeautifulSoup as bs
 import json
 import datetime
 
+
 class WrongCredentialsError(Exception):
     pass
+
 
 class SessionAPI:
     language_handler = {}
@@ -36,14 +38,15 @@ class SessionAPI:
         except KeyError:
             print("The file extension cannot be inferred. Please manually enter the relevant language")
 
-    @staticmethod
-    def factoryMethod(website):
+    def factory_method(self, website):
         if website == 'uva':
             return UvaSession()
         if website == 'codechef':
             return CodechefSession()
         if website == 'codeforces':
             return CodeForce()
+
+        return self
 
 
 class UvaSession(SessionAPI):
@@ -179,8 +182,8 @@ class UvaSession(SessionAPI):
             prob_json["pid"])
 
     @staticmethod
-    def make_default_template(template, index):
-        template.uva_template = index
+    def get_website():
+        return "uva"
 
 
 class CodechefSession(SessionAPI):
@@ -431,6 +434,10 @@ class CodechefSession(SessionAPI):
     def make_default_template(template, index):
         template.codechef_template = index
 
+    @staticmethod
+    def get_website():
+        return "codechef"
+
 
 class CodeForce(SessionAPI):
     FORCE_HOST = r"http://codeforces.com/"
@@ -513,7 +520,10 @@ class CodeForce(SessionAPI):
         login_response = self.code_sess.post(CodeForce.FORCE_LOGIN, data=form, headers=header)
         login_soup = bs(login_response.text, 'lxml')
 
-        return username == login_soup.find('a', href='/profile/' + username).text
+        if username == login_soup.find('a', href='/profile/' + username).text:
+            self.logged_in = True
+        else:
+            return "Error loggin in"
 
     # check result of the LATEST submission made
     def check_result(self, username):
@@ -621,3 +631,7 @@ class CodeForce(SessionAPI):
             'solved-questions': solved
         }
         return user_info
+
+    @staticmethod
+    def get_website():
+        return "codeforces"

@@ -69,8 +69,6 @@ def login(website=None):
     acc_manager.insert(website, username, password)
 
 
-
-
 def soln():
     pass
 
@@ -84,6 +82,10 @@ def setweb():
 
 
 def settpl():
+    pass
+
+
+def stats():
     pass
 
 
@@ -108,7 +110,7 @@ def parse(query):
         'view':
             {
                 'question': open_question, 'solutions': soln, 'tpl': lambda: str(tpl_manager),
-                'accounts': lambda: str(acc_manager)
+                'accounts': lambda: str(acc_manager), 'stats': stats
             },
 
         'submit': submit,
