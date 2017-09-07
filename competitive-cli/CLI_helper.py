@@ -1,17 +1,20 @@
 import json
 import keyring
+import os
 import pathlib
 import prettytable
 
-from .colors import color
+from colors import color
 
 
 class PreferenceManager:
+    file_path = pathlib.Path.home() / "competitive-cli" / "config.json"
+
     def __init__(self):
-        if pathlib.Path(pathlib.Path.home() / "competitive-cli" / "config.json").is_file():
-            self.config_file = open(pathlib.Path.home() / "competitive-cli" / "config.json", "r+")
+        if pathlib.Path(PreferenceManager.file_path).is_file():
+            self.config_file = open(PreferenceManager.file_path, "r+")
         else:
-            self.config_file = open(pathlib.Path.home() / "competitive-cli" / "config.json", "w+")
+            self.config_file = open(PreferenceManager.file_path, "w+")
 
         self.config_file.seek(0)
 
@@ -21,14 +24,9 @@ class PreferenceManager:
             self.data = dict()
             self.data["templates"] = dict()
             self.data["browser"] = None
-            self.data["mode"] = None
-            self.data["common-tpl"] = None
-            self.data["uva-tpl"] = None
-            self.data["codechef-tpl"] = None
-            self.data["codeforces-tpl"] = None
+            self.data["tpl"] = None
             self.data["accounts"] = dict()
-            self.data["uva-acc"] = None
-            self.data["codechef-acc"] = None
+            self.data["acc"] = None
 
     def __enter__(self):
         return self
@@ -39,14 +37,14 @@ class PreferenceManager:
         json.dump(self.data, self.config_file)
         self.config_file.close()
 
+    def get(self, key):
+        return self.data[key]
+
     def update(self, key, value):
         self.data[key] = value
 
     def update_browser(self, browser):
         self.update("browser", browser)
-
-    def update_mode(self, mode):
-        self.update("mode", mode)
 
     def delete(self, key):
         try:
@@ -57,6 +55,16 @@ class PreferenceManager:
         self.update(key,None)
         return return_value
 
+    def clear(self):
+        try:
+            os.remove(PreferenceManager.file_path)
+        except OSError:
+            print("Config file does not exist")
+
+        self.__init__()
+
+    def show(self):
+        print(self.data)
 
 class TemplateManager(PreferenceManager):
     def __init__(self):
@@ -67,20 +75,17 @@ class TemplateManager(PreferenceManager):
         else:
             self.number_of_templates = int(max(self.data["templates"].keys()))
 
-        self.uva_template = self.data["uva-tpl"]
-        self.codechef_template = self.data["codechef-tpl"]
-        self.codeforces_template = self.data["codeforces-tpl"]
-        self.common_template = self.data["common-tpl"]
+        self.common_template = self.data["tpl"]
 
     def __str__(self):
         if len(self.data["templates"]) == 0:
             return "There are no templates set"
 
-        table = prettytable.PrettyTable(["Index", "Website", "Path"])
+        table = prettytable.PrettyTable(["Index", "Path"])
         list_to_highlight = []
 
         for keys in self.data["templates"]:
-            if int(keys) in [self.uva_template, self.codechef_template, self.codeforces_template, self.common_template]:
+            if int(keys) == self.template:
                 list_to_highlight.append(keys)
             table.add_row([keys] + self.data["templates"][keys])
 
@@ -92,64 +97,24 @@ class TemplateManager(PreferenceManager):
 
         return "\n".join(table_list)
 
-
     @property
-    def uva_template(self):
-        return self.__uva_template
+    def template(self):
+        return self.__template
 
-    @property
-    def codechef_template(self):
-        return self.__codechef_template
+    @template.setter
+    def template(self, template):
+        self.__template = template
+        self.data["tpl"] = template
 
-    @property
-    def codeforces_template(self):
-        return self.__codeforces_template
-
-    @property
-    def common_template(self):
-        return self.__common_template
-
-    @uva_template.setter
-    def uva_template(self, uva_template):
-        self.__uva_template = uva_template
-        self.data["uva-tpl"] = uva_template
-
-    @codechef_template.setter
-    def codechef_template(self, codechef_template):
-        self.__codechef_template = codechef_template
-        self.data["codechef-tpl"] = codechef_template
-
-    @codeforces_template.setter
-    def codeforces_template(self, codeforces_template):
-        self.__codeforces_template = codeforces_template
-        self.data["codeforces-tpl"] = codeforces_template
-
-    @common_template.setter
-    def common_template(self, common_template):
-        self.__common_template = common_template
-        self.data["common-tpl"] = common_template
-
-    def insert(self, website, path):
-        if [website, path] in self.data["templates"].values():
+    def insert(self, path):
+        if path in self.data["templates"].values():
             return
 
         new_index = self.number_of_templates + 1
-
-        if website == "uva":
-            self.uva_template = new_index
-        elif website == "codechef":
-            self.codechef_template = new_index
-        elif website == "codeforces":
-            self.codeforces_template = new_index
-        elif website == "common":
-            self.common_template = new_index
-        else:
-            print("Website", website, "not supported")
-            return
-
+        self.template = new_index
         self.number_of_templates += 1
 
-        self.data["templates"][new_index] = [website, path]
+        self.data["templates"][new_index] = path
 
         return new_index
 
@@ -164,17 +129,11 @@ class TemplateManager(PreferenceManager):
             temp_value = self.data["templates"].pop(str(indices))
             self.data["templates"][str(indices-1)] = temp_value
 
-            if self.uva_template == indices: self.uva_template -= 1
-            if self.codechef_template == indices: self.codechef_template -= 1
-            if self.codeforces_template == indices: self.codeforces_template -= 1
-            if self.common_template == indices: self.common_template -= 1
+            if self.template == indices: self.template -= 1
 
         self.number_of_templates -= 1
 
-        if self.uva_template == int(key): self.uva_template = None
-        if self.codechef_template == int(key): self.codechef_template = None
-        if self.codeforces_template == int(key): self.codeforces_template = None
-        if self.common_template == int(key): self.common_template = None
+        if self.template == int(key): self.template = None
 
         return key,return_value
 
@@ -183,17 +142,7 @@ class TemplateManager(PreferenceManager):
         return self.data["templates"][index]
 
     def set_default(self, key):
-        key = str(key)
-        website = self.data["templates"][key][0]
-
-        if website == "uva":
-            self.uva_template = int(key)
-        elif website == "codechef":
-            self.codechef_template = int(key)
-        elif website == "codeforces":
-            self.codeforces_template = int(key)
-        elif website == "common":
-            self.common_template = int(key)
+        self.template = int(key)
 
 
 class AccountManager(PreferenceManager):
@@ -205,9 +154,7 @@ class AccountManager(PreferenceManager):
         else:
             self.number_of_accounts = int(max(self.data["accounts"].keys()))
 
-        self.uva_account = self.data["uva-acc"]
-        self.codechef_account = self.data["codechef-acc"]
-        self.codeforces_account = self.data["codeforces-acc"]
+        self.account = self.data["acc"]
 
     def __str__(self):
         if len(self.data["accounts"]) == 0:
@@ -217,7 +164,7 @@ class AccountManager(PreferenceManager):
         list_to_highlight = []
 
         for keys in self.data["accounts"]:
-            if int(keys) in [self.uva_account, self.codechef_account, self.codeforces_account]:
+            if int(keys) == self.account:
                 list_to_highlight.append(keys)
             table.add_row([keys] + self.data["accounts"][keys])
 
@@ -229,34 +176,14 @@ class AccountManager(PreferenceManager):
 
         return "\n".join(table_list)
 
-
-
     @property
-    def uva_account(self):
-        return self.__uva_account
+    def account(self):
+        return self.__account
 
-    @property
-    def codechef_account(self):
-        return self.__codechef_account
-
-    @property
-    def codeforces_account(self):
-        return self.__codeforces_account
-
-    @uva_account.setter
-    def uva_account(self, uva_account):
-        self.__uva_account = uva_account
-        self.data["uva-acc"] = uva_account
-
-    @codechef_account.setter
-    def codechef_account(self, codechef_account):
-        self.__codechef_account = codechef_account
-        self.data["codechef-acc"] = codechef_account
-
-    @codeforces_account.setter
-    def codeforces_account(self, codeforces_account):
-        self.__codeforces_account = codeforces_account
-        self.data["codeforces-acc"] = codeforces_account
+    @account.setter
+    def account(self, account):
+        self.__account = account
+        self.data["acc"] = account
 
     def insert(self, website, username, password):
         if [website, username] in self.data["accounts"].values():
@@ -264,16 +191,7 @@ class AccountManager(PreferenceManager):
 
         new_index = self.number_of_accounts + 1
 
-        if website == "uva":
-            self.uva_account = new_index
-        elif website == "codechef":
-            self.codechef_account = new_index
-        elif website == "codeforces":
-            self.codeforces_account = new_index
-        else:
-            print("Website", website, "not supported")
-            return
-
+        self.account = new_index
         self.number_of_accounts += 1
         self.data["accounts"][new_index] = [website, username]
 
@@ -300,15 +218,11 @@ class AccountManager(PreferenceManager):
             temp_value = self.data["accounts"].pop(str(indices))
             self.data["accounts"][str(indices-1)] = temp_value
 
-            if self.uva_account == indices: self.uva_account -= 1
-            if self.codechef_account == indices: self.codechef_account -= 1
-            if self.codeforces_account == indices: self.codeforces_account -= 1
+            if self.account == indices: self.account -= 1
 
         self.number_of_accounts -= 1
 
-        if self.uva_account == int(key): self.uva_account = None
-        if self.codechef_account == int(key): self.codechef_account = None
-        if self.codeforces_account == int(key): self.codeforces_account = None
+        if self.account == int(key): self.account = None
         keyring.delete_password(*return_value)
 
         return key,return_value
@@ -320,15 +234,4 @@ class AccountManager(PreferenceManager):
         return website, username, password
 
     def set_default(self, key):
-        key = str(key)
-        website = self.data["accounts"][key][0]
-
-        if website == "uva":
-            self.uva_account = int(key)
-        elif website == "codechef":
-            self.codechef_account = int(key)
-        elif website == "codeforces":
-            self.codeforces_account = int(key)
-
-
-
+        self.account = int(key)

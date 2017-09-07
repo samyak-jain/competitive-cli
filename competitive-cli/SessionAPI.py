@@ -8,10 +8,19 @@ import datetime
 
 
 class SessionAPI:
-    language_handler = {}
+    # TODO: Improve handler
+    language_handler = {
+        "c++": ".cpp",
+        "c": ".c",
+        "python": ".py",
+        "java": ".java",
+        "pascal": ".pas",
+        "ruby": ".rb"
+    }
 
     def __init__(self):
         self.logged_in = False
+        self.username = None
 
     @staticmethod
     def find_file(filename, path):
@@ -94,9 +103,12 @@ class UvaSession(SessionAPI):
         form["remember"] = "yes"
         login_response = self.uva_session.post(UvaSession.UVA_HOST + "index.php?option=com_comprofiler&task=login",
                                                data=form, headers={"referer": UvaSession.UVA_HOST})
-        return login_response.url == self.UVA_HOST
 
-    def submit(self, username, probNum, path=".", language=None):
+        self.logged_in = login_response == UvaSession.UVA_HOST
+        if (self.logged_in): self.username = username
+        return self.logged_in
+
+    def submit(self, probNum, path=".", language=None):
         file_path, filename = UvaSession.find_file(probNum, path)
         probFile = open(file_path)
 
@@ -127,10 +139,11 @@ class UvaSession(SessionAPI):
 
         resp = self.uva_session.post(UvaSession.SUBMIT_PATH, data=payload, headers=updated_headers)
         submission_id = resp.url[resp.url.find('ID')+3:]
-        return self.check_result(username, submission_id, probNum)
+        return self.check_result(submission_id, probNum)
 
-    @staticmethod
-    def check_result(username, submission_id, probNum):
+    # Latest submission
+    def check_result(self, submission_id, probNum):
+        username = self.username
         min_id = str(int(submission_id)-1)
         judge_id = requests.get("http://uhunt.felix-halim.net/api/uname2uid/" + username).text
         check = json.loads(requests.get('http://uhunt.felix-halim.net/api/subs-user/'+judge_id+'/'+min_id).text)
@@ -138,7 +151,7 @@ class UvaSession(SessionAPI):
         translated_table = [
             ['Submission ID', 'Problem ID', 'Verdict ID', 'Runtime', 'Submission Time', 'Language', 'Rank']]
         if not subs[0]:
-            return "Error Submitting"
+            return None
         else:
             while subs[0][2] in ['0', '20']:
                 check = json.loads(requests.get('http://uhunt.felix-halim.net/api/subs-user/' + judge_id + '/' + min_id).text)
@@ -227,16 +240,13 @@ class UvaSession(SessionAPI):
         return translated_table
 
     @staticmethod
-    def get_question_url(prob_Num):
+    def get_question(probID):
         prob_json = json.loads(
             requests.get(UvaSession.UHUNT_API + str(prob_Num)).text
         )
-        return r"https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=8&page=show_problem&problem=" + \
-               str(prob_json["pid"])
-
-    @staticmethod
-    def make_default_template(template, index):
-        template.uva_template = index
+        url = r"https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=8&page=show_problem&problem=" + str(
+            prob_json["pid"])
+        return url
 
 
 class CodechefSession(SessionAPI):
@@ -309,10 +319,10 @@ class CodechefSession(SessionAPI):
             response = self.codechef_session.post(CodechefSession.codechef_url + '/session/limit', data=payload)
         soup = bs(response.content, 'lxml')
         name = soup.find(text=username)
-        if name is None:
-            return None
-        else:
-            return response
+
+        self.logged_in = bool(name)
+        if self.logged_in: self.username = username
+        return self.logged_in
 
     def submit(self, question_code, path=".", language=None):
         contest = ""
@@ -413,7 +423,7 @@ class CodechefSession(SessionAPI):
             contests.append(reg)
         return contests
 
-    def question_url(self, question_code):
+    def get_question(self, question_code):
         contest = ""
         for contests in self.info_present_contests():
             for contest_ques in CodechefSession.ques_in_contest(contests['contest_name']):
@@ -482,10 +492,6 @@ class CodechefSession(SessionAPI):
             'completely solved questions': fully_solved,
             'partially solved question': partially_solved
         }
-
-    @staticmethod
-    def make_default_template(template, index):
-        template.codechef_template = index
 
 
 class CodeForce(SessionAPI):
@@ -569,7 +575,9 @@ class CodeForce(SessionAPI):
         login_response = self.code_sess.post(CodeForce.FORCE_LOGIN, data=form, headers=header)
         login_soup = bs(login_response.text, 'lxml')
 
-        return username == login_soup.find('a', href='/profile/' + username).text
+        self.logged_in = username == login_soup.find('a', href='/profile/' + username).text
+        if self.username: self.username = username
+        return self.logged_in
 
     # check result of the LATEST submission made
     def check_result(self, username):
@@ -626,7 +634,7 @@ class CodeForce(SessionAPI):
         if response == CodeForce.FORCE_HOST + "problemset/status":
             return self.check_result(username)
         else:
-            return "Error submitting"
+            return None
 
     # List out all the submissions made till date
     def display_sub(self, username):
@@ -651,7 +659,7 @@ class CodeForce(SessionAPI):
         return data
 
     @staticmethod
-    def question_url(questionid):
+    def get_question(questionid):
         question_link = CodeForce.FORCE_HOST + "problemset/problem/" + questionid[:3] + "/" + questionid[3:]
         return question_link
 
