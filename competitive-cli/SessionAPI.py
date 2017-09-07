@@ -94,7 +94,7 @@ class UvaSession(SessionAPI):
         form["remember"] = "yes"
         login_response = self.uva_session.post(UvaSession.UVA_HOST + "index.php?option=com_comprofiler&task=login",
                                                data=form, headers={"referer": UvaSession.UVA_HOST})
-        return login_response == UvaSession.UVA_HOST
+        return login_response.url == self.UVA_HOST
 
     def submit(self, username, probNum, path=".", language=None):
         file_path, filename = UvaSession.find_file(probNum, path)
@@ -133,7 +133,7 @@ class UvaSession(SessionAPI):
     def check_result(username, submission_id, probNum):
         min_id = str(int(submission_id)-1)
         judge_id = requests.get("http://uhunt.felix-halim.net/api/uname2uid/" + username).text
-        check = json.loads(requests.get('http://uhunt.felix-halim.net/api/subs-user/'+judge_id+'/'+min_id))
+        check = json.loads(requests.get('http://uhunt.felix-halim.net/api/subs-user/'+judge_id+'/'+min_id).text)
         subs = check['subs']
         translated_table = [
             ['Submission ID', 'Problem ID', 'Verdict ID', 'Runtime', 'Submission Time', 'Language', 'Rank']]
@@ -141,16 +141,50 @@ class UvaSession(SessionAPI):
             return "Error Submitting"
         else:
             while subs[0][2] in ['0', '20']:
-                check = json.loads(requests.get('http://uhunt.felix-halim.net/api/subs-user/' + judge_id + '/' + min_id))
+                check = json.loads(requests.get('http://uhunt.felix-halim.net/api/subs-user/' + judge_id + '/' + min_id).text)
                 subs = check['subs']
-            translated_row = subs
+            translated_row = list(map(str, subs[0]))
             translated_row[1] = probNum
-            translated_row[2] = UvaSession.translator[subs[0][2]]
-            translated_row[4] = datetime.datetime.fromtimestamp(int(subs[0][4])).strftime('%Y-%m-%d %H:%M:%S')
-            translated_row[5] = UvaSession.translator[subs[0][5]]
+            translated_row[2] = UvaSession.translator[translated_row[2]]
+            translated_row[4] = datetime.datetime.fromtimestamp(int(translated_row[4])).strftime('%Y-%m-%d %H:%M:%S')
+            translated_row[5] = UvaSession.translator[translated_row[5]]
+            if translated_row[6] == '-1':
+                translated_row[6] = 'No Rank'
             translated_table.append(translated_row)
         return translated_table
 
+    @staticmethod
+    def display_sub(username):
+        judge_id = requests.get("http://uhunt.felix-halim.net/api/uname2uid/" + username).text
+        check = json.loads(requests.get('http://uhunt.felix-halim.net/api/subs-user/' + judge_id).text)
+        subs = check['subs']
+        translated_table = [
+            ['Submission ID', 'Problem Number', 'Verdict ID', 'Runtime', 'Submission Time', 'Language', 'Rank']]
+        uhunt_num = 'http://uhunt.onlinejudge.org/api/p/id/'
+        for row in subs:
+            translated_row = list(map(str,row))
+            translated_row[1] = json.loads(requests.get(uhunt_num + translated_row[1]).text)['num']
+            translated_row[2] = UvaSession.translator[translated_row[2]]
+            translated_row[4] = datetime.datetime.fromtimestamp(int(translated_row[4])).strftime('%Y-%m-%d %H:%M:%S')
+            translated_row[5] = UvaSession.translator[translated_row[5]]
+            if translated_row[6] == '-1':
+                translated_row[6] = 'No Rank'
+            translated_table.append(translated_row)
+        return translated_table
+
+    """
+    Returns a Dictionary containing 
+    'Hits',
+    'online Status',
+    'Member Since',
+    'Last Online',
+    'submissions',
+    'Tried',
+    'Solved',
+    'First Submission',
+    'Last Submission',
+    from My Statistics on the user-feed
+    """
     def user_stats(self):
         stat = "https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=15"
         account = "https://uva.onlinejudge.org/index.php?option=com_comprofiler&Itemid=3"
@@ -164,7 +198,7 @@ class UvaSession(SessionAPI):
         td = account_table[3].find_all('td')
         data = {x.text: y.text for x, y in zip(td[0::2], td[1::2])}
 
-        list_of_headings = ["submissions", "Tried", "Solved", "First Sub", "Last Sub"]
+        list_of_headings = ["submissions", "Tried", "Solved", "First Submission", "Last Submission"]
 
         for index, heading in enumerate(list_of_headings):
             data[heading] = stats[index].text
@@ -172,31 +206,33 @@ class UvaSession(SessionAPI):
         return data
 
     @staticmethod
-    def check_question_status(username, probID):
+    def check_question_status(username, prob_Num):
         judge_id = requests.get("http://uhunt.felix-halim.net/api/uname2uid/"+username).text
         prob_json = json.loads(
-            requests.get(UvaSession.UHUNT_API + str(probID)).text
+            requests.get(UvaSession.UHUNT_API + str(prob_Num)).text
         )
         pid = str(prob_json['pid'])
         subs = json.loads(requests.get("http://uhunt.felix-halim.net/api/subs-pids/" + judge_id + "/" + pid).text)
         submission_table = subs[judge_id]['subs']
-        translated_table = [['Submission ID', 'Problem ID', 'Verdict ID', 'Runtime', 'Submission Time', 'Language', 'Rank']]
+        translated_table = [['Submission ID', 'Problem Number', 'Verdict ID', 'Runtime', 'Submission Time', 'Language', 'Rank']]
         for row in submission_table:
-            translated_row = row
-            translated_row[1] = probID
-            translated_row[2] = UvaSession.translator[row[2]]
-            translated_row[4] = datetime.datetime.fromtimestamp(int(row[4])).strftime('%Y-%m-%d %H:%M:%S')
-            translated_row[5] = UvaSession.translator[row[5]]
+            translated_row = list(map(str,row))
+            translated_row[1] = prob_Num
+            translated_row[2] = UvaSession.translator[translated_row[2]]
+            translated_row[4] = datetime.datetime.fromtimestamp(int(translated_row[4])).strftime('%Y-%m-%d %H:%M:%S')
+            translated_row[5] = UvaSession.translator[translated_row[5]]
+            if translated_row[6] == '-1':
+                translated_row[6] = 'No Rank'
             translated_table.append(translated_row)
         return translated_table
 
     @staticmethod
-    def get_question_url(probID):
+    def get_question_url(prob_Num):
         prob_json = json.loads(
-            requests.get(UvaSession.UHUNT_API + str(probID)).text
+            requests.get(UvaSession.UHUNT_API + str(prob_Num)).text
         )
-        return r"https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=8&page=show_problem&problem=" + str(
-            prob_json["pid"])
+        return r"https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=8&page=show_problem&problem=" + \
+               str(prob_json["pid"])
 
     @staticmethod
     def make_default_template(template, index):
