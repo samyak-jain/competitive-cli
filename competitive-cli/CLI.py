@@ -195,11 +195,17 @@ def stats(website):
 
 
 def usage():
+    print(
+        """
+            Usage:
+                ccli set browser <browser-name>
+        """
+    )
     pass
 
 
 def parse(query):
-    if len(query) == 0:
+    if len(query) == 0 or query == ["--help"] or query == ["-h"]:
         usage()
         return
 
@@ -254,6 +260,7 @@ def parse(query):
         iterative_commands = commands[new_cmds[0]]
     except KeyError:
         print("Invalid command")
+        usage()
         return
 
     new_cmds = new_cmds[1:]
@@ -265,6 +272,7 @@ def parse(query):
                 iterative_commands = iterative_commands[command]
             except KeyError:
                 print("Invalid Command")
+                usage()
                 return
         else:
             arguments.append(command)

@@ -29,7 +29,7 @@ class SessionAPI:
             for files in file:
                 if filename in files:
                     return os.path.join(root, files), files
-        raise IOError("File does not exist")
+        print("File does not exist")
 
     @classmethod
     def find_language(cls, filename):
