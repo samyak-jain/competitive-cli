@@ -5,6 +5,7 @@ import os
 from bs4 import BeautifulSoup as bs
 import json
 import datetime
+import difflib
 
 
 class SessionAPI:
@@ -93,6 +94,10 @@ class UvaSession(SessionAPI):
         self.uva_session = requests.session()
 
     def login(self, username, password):
+        """
+        logs the user in and returns a bool value
+        stores the username in self.username.
+        """
         get_response = self.uva_session.get(UvaSession.UVA_HOST)
         login_text = lxml.html.fromstring(get_response.text)
         hidden_inputs = login_text.xpath(r'//form//input[@type="hidden"]')
@@ -104,11 +109,15 @@ class UvaSession(SessionAPI):
         login_response = self.uva_session.post(UvaSession.UVA_HOST + "index.php?option=com_comprofiler&task=login",
                                                data=form, headers={"referer": UvaSession.UVA_HOST})
 
-        self.logged_in = login_response == UvaSession.UVA_HOST
+        self.logged_in = login_response.url == UvaSession.UVA_HOST
         if (self.logged_in): self.username = username
         return self.logged_in
 
     def submit(self, probNum, path=".", language=None):
+        """
+        submits the problem according to the problem Number of the question.
+        returns a list containing the submission details about the question.
+        """
         file_path, filename = UvaSession.find_file(probNum, path)
         probFile = open(file_path)
 
@@ -141,8 +150,10 @@ class UvaSession(SessionAPI):
         submission_id = resp.url[resp.url.find('ID')+3:]
         return self.check_result(submission_id, probNum)
 
-    # Latest submission
     def check_result(self, submission_id, probNum):
+        """
+        checks the result of the latest submission and returns a list containing submission details.
+        """
         username = self.username
         min_id = str(int(submission_id)-1)
         judge_id = requests.get("http://uhunt.felix-halim.net/api/uname2uid/" + username).text
@@ -168,6 +179,9 @@ class UvaSession(SessionAPI):
 
     @staticmethod
     def display_sub(username):
+        """
+        returns the submission details of all the submissions made till date for the particular user.
+        """
         judge_id = requests.get("http://uhunt.felix-halim.net/api/uname2uid/" + username).text
         check = json.loads(requests.get('http://uhunt.felix-halim.net/api/subs-user/' + judge_id).text)
         subs = check['subs']
@@ -185,20 +199,21 @@ class UvaSession(SessionAPI):
             translated_table.append(translated_row)
         return translated_table
 
-    """
-    Returns a Dictionary containing 
-    'Hits',
-    'online Status',
-    'Member Since',
-    'Last Online',
-    'submissions',
-    'Tried',
-    'Solved',
-    'First Submission',
-    'Last Submission',
-    from My Statistics on the user-feed
-    """
+
     def user_stats(self):
+        """
+            Returns a Dictionary containing
+            'Hits',
+            'online Status',
+            'Member Since',
+            'Last Online',
+            'submissions',
+            'Tried',
+            'Solved',
+            'First Submission',
+            'Last Submission',
+            from My Statistics on the user-feed
+            """
         stat = "https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=15"
         account = "https://uva.onlinejudge.org/index.php?option=com_comprofiler&Itemid=3"
         stat_page = self.uva_session.get(stat)
@@ -220,6 +235,10 @@ class UvaSession(SessionAPI):
 
     @staticmethod
     def check_question_status(username, prob_Num):
+        """
+        checks the status of the given question i.e. submission details of the particular question.
+        returns a list of lists containing the details.
+        """
         judge_id = requests.get("http://uhunt.felix-halim.net/api/uname2uid/"+username).text
         prob_json = json.loads(
             requests.get(UvaSession.UHUNT_API + str(prob_Num)).text
@@ -240,9 +259,12 @@ class UvaSession(SessionAPI):
         return translated_table
 
     @staticmethod
-    def get_question(probID):
+    def get_question(prob_Num):
+        """
+        gets the problem number of the question and returns the question link.
+        """
         prob_json = json.loads(
-            requests.get(UvaSession.UHUNT_API + str(prob_Num)).text
+            requests.get(UvaSession.UHUNT_API + str(probID)).text
         )
         url = r"https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=8&page=show_problem&problem=" + str(
             prob_json["pid"])
@@ -324,6 +346,7 @@ class CodechefSession(SessionAPI):
         if self.logged_in: self.username = username
         return self.logged_in
 
+
     def submit(self, question_code, path=".", language=None):
         contest = ""
         for contests in self.info_present_contests():
@@ -354,17 +377,21 @@ class CodechefSession(SessionAPI):
                                               files=file
                                               )
 
-        sub_id = int(response.url.split('/')[-1])
-        return sub_id, self.check_result(sub_id, question_code)
+        sub_id = response.url.split('/')[-1]
+        return sub_id , self.check_result(sub_id, question_code)
 
     @staticmethod
     def ques_in_contest(contest_name):
         response = requests.get(
             CodechefSession.codechef_url + '/api/contests/' + contest_name
         )
+
         response = response.json()
 
-        return response['problems'].keys()
+        if response['status'] == 'error':
+            return []
+        ques_list = response['problems'].keys()
+        return list(ques_list)
 
     def check_result(self, submission_id, question_code):
         """
@@ -376,23 +403,38 @@ class CodechefSession(SessionAPI):
         - Compilation error
         - Runtime Error
         """
-        id_location = None
-        result = ""
-        unwanted_results = ['compiling..', 'running..', 'waiting..', 'running judge..']
-        while id_location == None or result in unwanted_results:
-            response = self.codechef_session.get(CodechefSession.codechef_url + \
-                                                 '/status/' + \
-                                                 question_code)
-            soup = bs(response.text, 'html5lib')
-            id_location = soup.find(text=str(submission_id))
+        table = None
+
+        result = [['Sub-Task', 'Task', 'Score', "Result(time)"]]
+        header = {
+            'authority': CodechefSession.codechef_url,
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Mobile Safari/537.36'
+        }
+        # unwanted_results = ['compiling..', 'running..', 'waiting..', 'running judge..']
+        while table is None:
+            response = self.codechef_session.get(CodechefSession.codechef_url +\
+                                                 '/viewsolution/' +\
+                                                 submission_id, headers=header)
+
             try:
-                result = id_location.parent.parent.find('span')['title']
+                soup = bs(response.text, 'html5lib')
+                table = soup.find('table', attrs={'class', 'status-table'}).find_all('tr')
             except:
                 pass
-        if result == "":
-            return "Correct Answer"
-        else:
-            return result
+
+        for tr in table[1:]:
+            rel = []
+
+            for td in tr.find_all('td'):
+                rel.append(td.get_text())
+
+            for k in range(4-len(rel)):
+                rel.append(' ')
+            result.append(rel)
+
+
+        # balancing the tables
+        return result
 
     def logout(self):
         """
@@ -482,7 +524,7 @@ class CodechefSession(SessionAPI):
         fully_solved = "".join(re.findall(r'\d+', solved[0].get_text()))
         partially_solved = "".join(re.findall(r'\d+', solved[1].get_text()))
 
-        return {
+        return({
             'name': name,
             'username': username,
             'country': country,
@@ -490,8 +532,7 @@ class CodechefSession(SessionAPI):
             'global-rank': global_rank,
             'country-rank': country_rank,
             'completely solved questions': fully_solved,
-            'partially solved question': partially_solved
-        }
+            'partially solved question': partially_solved})
 
 
 class CodeForce(SessionAPI):
@@ -685,3 +726,4 @@ class CodeForce(SessionAPI):
             'solved-questions': solved
         }
         return user_info
+
