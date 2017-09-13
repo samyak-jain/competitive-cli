@@ -53,6 +53,92 @@ class SessionAPI:
         if website == 'codeforces':
             return CodeForce()
 
+class udebug:
+
+    uva_link = "https://www.udebug.com/"
+    translator = {
+        'uva': 'UVa',
+        'google-code-jam': 'GCJ',
+        'dev-skill': 'DS',
+        'cats-online-judge': 'CATS',
+        'uri-online-judge': 'URI',
+        'light-online-judge': 'LOJ',
+        'acm-icpc-live-archive': 'LA',
+        'facebook-hacker-cup': 'FBHC'
+    }
+
+    @staticmethod
+    def phase_one(problem_id, judge):
+        question_link = udebug.uva_link + udebug.translator[judge] + '/' + problem_id
+        input_link = "https://www.udebug.com/udebug-custom-get-selected-input-ajax"
+        problem_soup = bs(requests.get(question_link).text, 'lxml')
+        input_nid = problem_soup.find('tr', class_='odd').find('a')['data-id']
+        form = {
+            'input_nid': input_nid
+        }
+        inputs = requests.post(input_link, data=form).json()['input_value']
+        hidden = problem_soup.find('form', id="udebug-custom-problem-view-input-output-form").find_all('input')
+        payload = {
+            'problem_nid': hidden[0]['value'],
+            'input_data': inputs,
+            'node_nid': hidden[1]['value'],
+            'op': hidden[2]['value'],
+            'output_data': '',
+            'user_output': '',
+            'form_build_id': hidden[5]['value'],
+            'form_id': hidden[-2]['value']}
+        response = requests.post(question_link, data=payload)
+        response_soup = bs(response.text, 'lxml')
+        accepted_output = response_soup.find('textarea', id='edit-output-data').text
+        try:
+            file = open('logs/' + problem_id + '_Accepted.txt', 'w')
+        except FileNotFoundError:
+            os.makedirs('logs')
+            file = open('logs/' + problem_id + '_Accepted.txt', 'w')
+        file.write(accepted_output)
+        file.close()
+        return os.stat('logs/' + problem_id + '_Accepted.txt').st_size != 0
+
+    @staticmethod
+    def phase_two(file_path, problem_id):
+        """
+        checks the differences between the user output and the Accepted Output.
+        it returns the additions or deletions to be done to the user output file.
+        **important the addition list and subtraction list give us the lines to be added or subtracted from the
+        first file respectively.**
+        :return:
+        if output is not identical
+        dictionary containing:
+        No. of additions(int),
+        No. of subtractions(int),
+        No. of differences between the two files(int),
+        additions list(list containing additions to be made to the first file),
+        subtractions list(list containing subtractions to be made to the first file_,
+        details(list containing additions and subtractions together i.e. the whole diff file.)
+        :else:
+        :return: Success message if output is identical.
+        """
+        accepted = open('logs/' + problem_id + '_Accepted.txt', 'r')
+        user_output = open(file_path, 'r')
+        det = list()
+        for line in difflib.unified_diff(user_output.readlines(), accepted.readlines(), fromfile='Your Output',
+                                         tofile='Accepted Output', lineterm=''):
+            if line[0] != ' ':
+                det.append(line)
+        accepted.close()
+        user_output.close()
+        if det:
+            add_list = [i for i in det if i[0] == '+']
+            diff_list = [j for j in det if j[0] == '-']
+            details = {'additions': len(add_list) - 1,
+                       'subtractions': len(diff_list) - 1,
+                       'differences': len(diff_list) + len(add_list) - 2,
+                       'add_list': add_list[1:],
+                       'diff_list': diff_list[1:],
+                       'details': det}
+            return details
+        return "Your Output matches the accepted Output!"
+        # mark I
 
 class UvaSession(SessionAPI):
     UVA_HOST = r"https://uva.onlinejudge.org/"
@@ -264,7 +350,7 @@ class UvaSession(SessionAPI):
         gets the problem number of the question and returns the question link.
         """
         prob_json = json.loads(
-            requests.get(UvaSession.UHUNT_API + str(probID)).text
+            requests.get(UvaSession.UHUNT_API + str(prob_Num)).text
         )
         url = r"https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=8&page=show_problem&problem=" + str(
             prob_json["pid"])
@@ -593,6 +679,12 @@ class CodeForce(SessionAPI):
         self.code_sess = requests.session()
 
     def login(self, username, password):
+        """
+        logs the user in.
+        :param username:
+        :param password:
+        :return: bool value.
+        """
         login = self.code_sess.get(CodeForce.FORCE_LOGIN)
         login = bs(login.text, "lxml")
         login = login.find('form', id='linkEnterForm')
@@ -620,8 +712,11 @@ class CodeForce(SessionAPI):
         if self.username: self.username = username
         return self.logged_in
 
-    # check result of the LATEST submission made
     def check_result(self, username):
+        """
+        check result of the LATEST submission made
+        :return: the latest submission.
+        """
         response = self.code_sess.get(CodeForce.FORCE_HOST + "submissions/" + username)
         soup = bs(response.text, 'lxml')
         table_data = [["Submission Id", "When", "Who", "Problem", "Language", "Verdict", "Time", "Memory"]]
@@ -637,15 +732,24 @@ class CodeForce(SessionAPI):
         table_data.append(row)
         return table_data
 
-    # finds the csrf_token for the logout link and signs out user
+
     def logout(self, username):
+        """
+        finds the csrf_token for the logout link and signs out user
+        :param username:
+        :return: the logout link.
+        """
         loginpage = self.code_sess.get(CodeForce.FORCE_HOST)
         soup = bs(loginpage.text, "lxml")
         csrf = soup.find('a', href='/profile/' + username)
         logout_link = "http://codeforces.com" + csrf.find_next_sibling('a')['href']
-        self.code_sess.get(logout_link)
+        return self.code_sess.get(logout_link)
 
     def submit(self, question_id, path, username, lang=None):
+        """
+        gets the language from the file extension or as user input and submits the file to the website.
+        :return: bool value specifying whether the function succeeded.
+        """
         file_path, filename = CodeForce.find_file(question_id, path)
         submit_link = CodeForce.FORCE_HOST + "problemset/submit"
         sub_request = self.code_sess.get(submit_link)
@@ -675,10 +779,12 @@ class CodeForce(SessionAPI):
         if response == CodeForce.FORCE_HOST + "problemset/status":
             return self.check_result(username)
         else:
-            return None
+            return False
 
-    # List out all the submissions made till date
     def display_sub(self, username):
+        """
+        :return: list of lists containing the submission details
+        """
         submit_link = CodeForce.FORCE_HOST + "submissions/" + username
         submit_page = self.code_sess.get(submit_link)
         submit_soup = bs(submit_page.text, 'lxml')
@@ -692,19 +798,29 @@ class CodeForce(SessionAPI):
         return table_data
 
     def check_question_status(self, questionid, username):
+        """
+
+        :return: list of lists containing the submission data of the given question id.
+        """
         table_data = self.display_sub(username)
         data = list()
         for row in table_data[1:]:
-            if questionid == row[3]:
+            if questionid in row[3]:
                 data.append(row)
         return data
 
     @staticmethod
     def get_question(questionid):
+        """
+        :return:  the question link.
+        """
         question_link = CodeForce.FORCE_HOST + "problemset/problem/" + questionid[:3] + "/" + questionid[3:]
         return question_link
 
     def user_stats(self, username):
+        """
+        :return: users personal details as a dictionary.
+        """
         info_page = self.code_sess.get(CodeForce.FORCE_HOST + "profile/" + username)
         info_soup = bs(info_page.text, 'lxml')
         info_div = info_soup.find('div', class_='info')
@@ -720,7 +836,7 @@ class CodeForce(SessionAPI):
         user_info = {
             'user_rank': user_rank,
             'Contribution': li[0].span.text,
-            li[1].text.strip()[:9]: li[1].text.strip()[10:],
+            'Friend of': li[1].text.strip()[10:],
             'Last-Visit': li[5].span.text.strip(),
             'Registered': li[6].span.text.strip(),
             'solved-questions': solved
