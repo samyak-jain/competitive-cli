@@ -136,6 +136,11 @@ def login(website=None):
 
     acc_manager.insert(website, username, password)
 
+    if websiteObject.logged_in:
+        print("Successful Login")
+    else:
+        print("Login Failed")
+
 
 def soln(website=None):
     global websiteObject

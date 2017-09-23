@@ -14,6 +14,7 @@ class PreferenceManager:
         if pathlib.Path(PreferenceManager.file_path).is_file():
             self.config_file = open(PreferenceManager.file_path, "r+")
         else:
+            pathlib.Path(pathlib.Path.home() / "competitive-cli").mkdir(parents=True, exist_ok=True)
             self.config_file = open(PreferenceManager.file_path, "w+")
 
         self.config_file.seek(0)
@@ -194,7 +195,7 @@ class AccountManager(PreferenceManager):
         self.account = new_index
         self.number_of_accounts += 1
         self.data["accounts"][new_index] = [website, username]
-
+        print(self.data["accounts"][new_index])
         keyring.set_password(website, username, password)
 
     def update(self, key, password):

@@ -708,7 +708,11 @@ class CodeForce(SessionAPI):
         login_response = self.code_sess.post(CodeForce.FORCE_LOGIN, data=form, headers=header)
         login_soup = bs(login_response.text, 'lxml')
 
-        self.logged_in = username == login_soup.find('a', href='/profile/' + username).text
+        try:
+            self.logged_in = username == login_soup.find('a', href='/profile/' + username).text
+        except AttributeError:
+            return False
+
         if self.username: self.username = username
         return self.logged_in
 
