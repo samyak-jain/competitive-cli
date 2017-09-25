@@ -37,8 +37,7 @@ class InteractiveShell:
 
 def submit(probID, path=None, language=None, website=None):
     global websiteObject
-    login(website)
-
+    # login(website)
     result = websiteObject.submit(probID, path, language)
 
     if result is None:
@@ -177,15 +176,14 @@ def insacc():
 def instpl(path=None):
     global tpl_manager
 
-    website = input("Enter Website: ")
     if path == '.':
         path = pathlib.Path().cwd()
-    elif path is None:
+    elif path is not None:
         path = pathlib.Path(path)
     else:
         path = input("Enter Path: ")
 
-    tpl_manager.insert(website, path)
+    tpl_manager.insert(path)
 
 
 def stats(website):
@@ -233,8 +231,8 @@ def parse(query):
 
         'view':
             {
-                'question': open_question, 'solutions': soln, 'tpl': lambda: str(tpl_manager),
-                'accounts': lambda: str(acc_manager), 'stats': stats, 'config': pref_manager.show
+                'question': open_question, 'solutions': soln, 'tpl': lambda: print(str(tpl_manager)),
+                'accounts': lambda: print(str(acc_manager)), 'stats': stats, 'config': pref_manager.show
             },
 
         'submit': submit,

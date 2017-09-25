@@ -440,8 +440,8 @@ class CodechefSession(SessionAPI):
                 if contest_ques == question_code:
                     contest = '/' + contests['contest_name']
                     break
-
-        file_path, file_name = CodechefSession.find_file(question_code, path)
+        file_path = path
+        # file_path, file_name = CodechefSession.find_file(question_code, path)
         lang = CodechefSession.language_handler[language]
         response = self.codechef_session.get(
             self.codechef_url + contest + '/submit/' + question_code
@@ -686,6 +686,9 @@ class CodeForce(SessionAPI):
         :return: bool value.
         """
         login = self.code_sess.get(CodeForce.FORCE_LOGIN)
+        if login.status_code == 503:
+            print("Server Down")
+            return False
         login = bs(login.text, "lxml")
         login = login.find('form', id='linkEnterForm')
         hidden = login.find_all('input')

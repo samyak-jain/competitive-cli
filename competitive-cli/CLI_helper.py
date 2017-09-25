@@ -88,7 +88,7 @@ class TemplateManager(PreferenceManager):
         for keys in self.data["templates"]:
             if int(keys) == self.template:
                 list_to_highlight.append(keys)
-            table.add_row([keys] + self.data["templates"][keys])
+            table.add_row([keys] +[self.data["templates"][keys]])
 
         table_string = table.get_string()
         table_list = table_string.split("\n")
@@ -195,7 +195,6 @@ class AccountManager(PreferenceManager):
         self.account = new_index
         self.number_of_accounts += 1
         self.data["accounts"][new_index] = [website, username]
-        print(self.data["accounts"][new_index])
         keyring.set_password(website, username, password)
 
     def update(self, key, password):
