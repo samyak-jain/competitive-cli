@@ -154,7 +154,7 @@ class PreferenceManager:
         :param key: key of the template in tha table
         :return:
         """
-        key = int(key)
+        key = str(key)
         if key not in self.data["templates"]:
             print("Template with given index does not exist")
             return
