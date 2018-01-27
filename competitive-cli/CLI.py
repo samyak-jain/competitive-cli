@@ -187,7 +187,7 @@ def stats(website=None):
     global websiteObject
     if not websiteObject.logged_in:
         login(website)
-    data = websiteObject.user_stats(manager.get_account(manager.account)[1])
+    data = websiteObject.user_stats()
     for element in data:
         print(element, data[element])
 
@@ -204,7 +204,7 @@ def displayTemplate():
 
 def clr():
     if websiteObject.logged_in:
-        websiteObject.logout(manager.get_account(manager.account)[1])
+        websiteObject.logout()
     websiteObject.logged_in = False
     manager.clear()
 

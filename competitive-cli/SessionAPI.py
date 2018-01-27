@@ -179,6 +179,7 @@ class UvaSession(SessionAPI):
         super().__init__()
         self.uva_session = requests.session()
 
+
     def login(self, username, password):
         """
         logs the user in and returns a bool value
@@ -263,12 +264,11 @@ class UvaSession(SessionAPI):
             translated_table.append(translated_row)
         return translated_table
 
-    @staticmethod
-    def display_sub(username):
+    def display_sub(self):
         """
         returns the submission details of all the submissions made till date for the particular user.
         """
-        judge_id = requests.get("http://uhunt.felix-halim.net/api/uname2uid/" + username).text
+        judge_id = requests.get("http://uhunt.felix-halim.net/api/uname2uid/" + self.username).text
         check = json.loads(requests.get('http://uhunt.felix-halim.net/api/subs-user/' + judge_id).text)
         subs = check['subs']
         translated_table = [
@@ -285,7 +285,7 @@ class UvaSession(SessionAPI):
             translated_table.append(translated_row)
         return translated_table
 
-    def user_stats(self, username):
+    def user_stats(self):
         """
             Returns a Dictionary containing
             'Hits',
@@ -318,13 +318,12 @@ class UvaSession(SessionAPI):
 
         return data
 
-    @staticmethod
-    def check_question_status(username, prob_Num):
+    def check_question_status(self, prob_Num):
         """
         checks the status of the given question i.e. submission details of the particular question.
         returns a list of lists containing the details.
         """
-        judge_id = requests.get("http://uhunt.felix-halim.net/api/uname2uid/"+username).text
+        judge_id = requests.get("http://uhunt.felix-halim.net/api/uname2uid/"+self.username).text
         prob_json = json.loads(
             requests.get(UvaSession.UHUNT_API + str(prob_Num)).text
         )
@@ -355,7 +354,7 @@ class UvaSession(SessionAPI):
             prob_json["pid"])
         return url
 
-    def logout(self, username):
+    def logout(self):
         pass
 
 class CodechefSession(SessionAPI):
@@ -678,7 +677,6 @@ class CodeForce(SessionAPI):
     def __init__(self):
         super().__init__()
         self.code_sess = requests.session()
-        self.username = ''
 
     def login(self, username, password):
         """
@@ -687,7 +685,6 @@ class CodeForce(SessionAPI):
         :param password:
         :return: bool value.
         """
-        self.username = username
         login = self.code_sess.get(CodeForce.FORCE_LOGIN)
         if login.status_code == 503:
             print("Server Down")
@@ -719,7 +716,7 @@ class CodeForce(SessionAPI):
         except AttributeError:
             return False
 
-        if self.username: self.username = username
+        if self.logged_in: self.username = username
         return self.logged_in
 
     def check_result(self):
