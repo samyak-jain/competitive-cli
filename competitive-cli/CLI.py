@@ -194,7 +194,7 @@ def stats(website=None):
         print(element, data[element])
 
 
-def  displayAccount():
+def displayAccount():
     kap = manager.accountString()
     print(kap)
 
