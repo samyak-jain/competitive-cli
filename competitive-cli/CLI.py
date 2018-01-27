@@ -52,15 +52,24 @@ def submit(probID, path=None, language=None, website=None):
 
     print(str(table))
 
+
 def download(probID, path=pathlib.Path().cwd(), website=None):
     global websiteObject
-    login(website)
+
+    if not websiteObject.logged_in:
+        login(website)
 
     path = pathlib.Path(path)
     url = websiteObject.get_question(probID)
-    html = requests.get(url).text
-    question_file = open(path / (probID + ".html"), 'w')
-    question_file.write(html)
+    if isinstance(SessionAPI.UvaSession, websiteObject):
+        pdf = requests.get(url).content
+        question_file = open(path / (probID + ".pdf"), 'wb')
+        question_file.write(pdf)
+    else:
+        html = requests.get(url).text
+        question_file = open(path / (probID + ".html"), 'w')
+        question_file.write(html)
+
     question_file.close()
 
 

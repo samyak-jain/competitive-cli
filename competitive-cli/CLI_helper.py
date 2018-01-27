@@ -145,7 +145,7 @@ class PreferenceManager:
         self.template = new_index
         self.number_of_templates += 1
 
-        self.data["templates"][new_index] = path
+        self.data["templates"][str(new_index)] = path
 
         return new_index
 
@@ -246,7 +246,7 @@ class PreferenceManager:
 
         self.account = new_index
         self.number_of_accounts += 1
-        self.data["accounts"][new_index] = [website, username]
+        self.data["accounts"][str(new_index)] = [website, username]
         keyring.set_password(website, username, password)
 
     def updateAccount(self, key, password):
