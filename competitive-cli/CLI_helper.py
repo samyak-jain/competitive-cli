@@ -162,7 +162,7 @@ class PreferenceManager:
         template_keys = [int(indices) for indices in self.data["templates"].keys() if int(indices)>int(key)]
         for indices in template_keys:
             temp_value = self.data["templates"].pop(int(indices))
-            self.data["templates"][int(indices-1)] = temp_value
+            self.data["templates"][str(indices-1)] = temp_value
 
             if self.template == indices: self.template -= 1
 
@@ -178,7 +178,7 @@ class PreferenceManager:
         :param key: index of the template in the table
         :return: template
         """
-        key = int(key)
+        key = str(key)
         return self.data["templates"][key]
 
     def setDefaultTemplate(self, key):
@@ -255,7 +255,7 @@ class PreferenceManager:
         :param password: password for checking Authenticity
         Updates password
         """
-        key = int(key)
+        key = str(key)
         if key not in self.data["accounts"]:
             print("Account with given index does not exist")
             return
@@ -269,15 +269,15 @@ class PreferenceManager:
         :param key: key of the Account in the Table
         Deletes Account
         """
-        key = int(key)
+        key = str(key)
         if key not in self.data["accounts"]:
             print("Account with given index does not exist")
             return
         return_value = self.data["accounts"].pop(key)
         account_keys = [int(indices) for indices in self.data["accounts"].keys() if int(indices)>int(key)]
         for indices in account_keys:
-            temp_value = self.data["accounts"].pop(int(indices))
-            self.data["accounts"][int(indices-1)] = temp_value
+            temp_value = self.data["accounts"].pop(str(indices))
+            self.data["accounts"][str(indices-1)] = temp_value
 
             if self.account == indices: self.account -= 1
 
@@ -296,7 +296,7 @@ class PreferenceManager:
         if key is None or key is str():
             print("Login to continue")
             return False
-        key = int(key)
+        key = str(key)
         website, username = self.data["accounts"][key]
         password = keyring.get_password(website, username)
         return website, username, password
