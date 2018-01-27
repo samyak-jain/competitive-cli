@@ -40,7 +40,12 @@ def submit(probID, path=None, language=None, website=None):
     if path is None:
         path = manager.get_template(manager.template)
 
-    result = websiteObject.submit(probID, path, language)
+    if language is None:
+        print(path)
+        result = websiteObject.submit(probID, path)
+    else:
+        print(path)
+        result = websiteObject.submit(probID, path, language)
 
     if result is None:
         print("Error submitting")
@@ -66,7 +71,7 @@ def download(probID, path=pathlib.Path().cwd(), website=None):
 
 def create(probID, language, path=None, tpl_index=None):
     # global tpl_manager
-
+    print(probID)
     if tpl_index is None:
         tpl_index = manager.template
     if path is None:
@@ -74,8 +79,8 @@ def create(probID, language, path=None, tpl_index=None):
     else:
         path = pathlib.Path(path)
 
-    extension = SessionAPI.SessionAPI.find_language(language)
-    path = path / (probID + extension)
+    extension = SessionAPI.SessionAPI.find_language(str(language))
+    path = path / (str(probID) + extension)
 
     if path.is_file():
         overwrite = input("File already exists? (y/n) ")

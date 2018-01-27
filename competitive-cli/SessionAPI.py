@@ -32,15 +32,14 @@ class SessionAPI:
         print("File does not exist")
 
     @classmethod
-    def find_language(cls, filename):
+    def find_language(cls, language):
         """
             to return the language code of the question to be submitted
             :return:language code
         """
-        extension_index = filename.find(".")
-        file_extension = filename[extension_index:]
+        print(str(language))
         try:
-            return cls.language_handler[file_extension.lower()]
+            return cls.language_handler[language]
         except KeyError:
             print("The file extension cannot be inferred. Please manually enter the relevant language")
 
@@ -757,6 +756,7 @@ class CodeForce(SessionAPI):
         gets the language from the file extension or as user input and submits the file to the website.
         :return: bool value specifying whether the function succeeded.
         """
+        print("path:"+ path)
         file_path, filename = CodeForce.find_file(question_id, path)
         submit_link = CodeForce.FORCE_HOST + "problemset/submit"
         sub_request = self.code_sess.get(submit_link)
