@@ -16,6 +16,7 @@ websiteObject = SessionAPI.SessionAPI()
 
 manager = CLI_helper.PreferenceManager()
 
+
 class InteractiveShell:
     def __init__(self):
         self.active = False
@@ -51,7 +52,6 @@ def submit(probID, path=None, language=None, website=None):
         table.add_row(row)
 
     print(str(table))
-
 
 def download(probID, path=pathlib.Path().cwd(), website=None):
     global websiteObject
@@ -187,9 +187,7 @@ def stats(website=None):
     global websiteObject
     if not websiteObject.logged_in:
         login(website)
-
     data = websiteObject.user_stats(manager.get_account(manager.account)[1])
-
     for element in data:
         print(element, data[element])
 
@@ -202,6 +200,13 @@ def  displayAccount():
 def displayTemplate():
     kap = manager.templateString()
     print(kap)
+
+
+def clr():
+    if websiteObject.logged_in:
+        websiteObject.logout(manager.get_account(manager.account)[1])
+    websiteObject.logged_in = False
+    manager.clear()
 
 
 def usage():
@@ -230,6 +235,7 @@ def usage():
         """
     )
     pass
+
 
 def parse(query):
     if len(query) == 0 or query == ["--help"] or query == ["-h"]:
@@ -271,7 +277,7 @@ def parse(query):
 
         'delete':
             {
-                'tpl': manager.deleteTemplate, 'account': manager.deleteAccount, 'config': manager.clear
+                'tpl': manager.deleteTemplate, 'account': manager.deleteAccount, 'config': clr
             },
 
         'login': login,

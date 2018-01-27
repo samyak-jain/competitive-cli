@@ -222,8 +222,10 @@ class PreferenceManager:
         Remove and recreate config.json
         """
         try:
+            self.config_file.close()
             os.remove(PreferenceManager.file_path)
-        except OSError:
+        except OSError as e:
+            print(e)
             print("Config file does not exist")
 
         self.__init__()
@@ -293,6 +295,9 @@ class PreferenceManager:
         :param key:
         :return: Name of the website, username, password
         """
+        if key is None or key is str():
+            print("Login to continue")
+            return False
         key = int(key)
         website, username = self.data["accounts"][key]
         password = keyring.get_password(website, username)

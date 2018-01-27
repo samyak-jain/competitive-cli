@@ -355,6 +355,8 @@ class UvaSession(SessionAPI):
             prob_json["pid"])
         return url
 
+    def logout(self, username):
+        pass
 
 class CodechefSession(SessionAPI):
     codechef_url = r"https://www.codechef.com"
@@ -521,7 +523,7 @@ class CodechefSession(SessionAPI):
         # balancing the tables
         return result
 
-    def logout(self):
+    def logout(self, username):
         """
         logout
         :return: logout response
