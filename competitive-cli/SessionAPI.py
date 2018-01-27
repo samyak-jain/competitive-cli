@@ -678,6 +678,7 @@ class CodeForce(SessionAPI):
     def __init__(self):
         super().__init__()
         self.code_sess = requests.session()
+        self.username = ''
 
     def login(self, username, password):
         """
@@ -686,6 +687,7 @@ class CodeForce(SessionAPI):
         :param password:
         :return: bool value.
         """
+        self.username = username
         login = self.code_sess.get(CodeForce.FORCE_LOGIN)
         if login.status_code == 503:
             print("Server Down")
@@ -720,18 +722,18 @@ class CodeForce(SessionAPI):
         if self.username: self.username = username
         return self.logged_in
 
-    def check_result(self, username):
+    def check_result(self):
         """
         check result of the LATEST submission made
         :return: the latest submission.
         """
-        response = self.code_sess.get(CodeForce.FORCE_HOST + "submissions/" + username)
+        response = self.code_sess.get(CodeForce.FORCE_HOST + "submissions/" + self.username)
         soup = bs(response.text, 'lxml')
         table_data = [["Submission Id", "When", "Who", "Problem", "Language", "Verdict", "Time", "Memory"]]
         row = list()
         trap = soup.find('span', class_='submissionVerdictWrapper').text.lower()
         while 'running' in trap:
-            page = self.code_sess.get(CodeForce.FORCE_HOST + "submissions/" + username)
+            page = self.code_sess.get(CodeForce.FORCE_HOST + "submissions/" + self.username)
             soup = bs(page.text, 'lxml')
             trap = soup.find('span', class_='submissionVerdictWrapper').text.lower()
         table = soup.find_all('tr')
@@ -741,7 +743,7 @@ class CodeForce(SessionAPI):
         return table_data
 
 
-    def logout(self, username):
+    def logout(self):
         """
         finds the csrf_token for the logout link and signs out user
         :param username:
@@ -749,11 +751,11 @@ class CodeForce(SessionAPI):
         """
         loginpage = self.code_sess.get(CodeForce.FORCE_HOST)
         soup = bs(loginpage.text, "lxml")
-        csrf = soup.find('a', href='/profile/' + username)
+        csrf = soup.find('a', href='/profile/' + self.username)
         logout_link = "http://codeforces.com" + csrf.find_next_sibling('a')['href']
         return self.code_sess.get(logout_link)
 
-    def submit(self, question_id, path, username, lang=None):
+    def submit(self, question_id, path, lang=None):
         """
         gets the language from the file extension or as user input and submits the file to the website.
         :return: bool value specifying whether the function succeeded.
@@ -785,15 +787,15 @@ class CodeForce(SessionAPI):
 
         response = self.code_sess.post(submit_link, data=form)
         if response == CodeForce.FORCE_HOST + "problemset/status":
-            return self.check_result(username)
+            return self.check_result()
         else:
             return False
 
-    def display_sub(self, username):
+    def display_sub(self):
         """
         :return: list of lists containing the submission details
         """
-        submit_link = CodeForce.FORCE_HOST + "submissions/" + username
+        submit_link = CodeForce.FORCE_HOST + "submissions/" + self.username
         submit_page = self.code_sess.get(submit_link)
         submit_soup = bs(submit_page.text, 'lxml')
         table = submit_soup.find_all('tr')
@@ -805,12 +807,12 @@ class CodeForce(SessionAPI):
             table_data.append(new_row)
         return table_data
 
-    def check_question_status(self, questionid, username):
+    def check_question_status(self, questionid):
         """
 
         :return: list of lists containing the submission data of the given question id.
         """
-        table_data = self.display_sub(username)
+        table_data = self.display_sub()
         data = list()
         for row in table_data[1:]:
             if questionid in row[3]:
@@ -825,16 +827,16 @@ class CodeForce(SessionAPI):
         question_link = CodeForce.FORCE_HOST + "problemset/problem/" + questionid[:3] + "/" + questionid[3:]
         return question_link
 
-    def user_stats(self, username):
+    def user_stats(self):
         """
         :return: users personal details as a dictionary.
         """
-        info_page = self.code_sess.get(CodeForce.FORCE_HOST + "profile/" + username)
+        info_page = self.code_sess.get(CodeForce.FORCE_HOST + "profile/" + self.username)
         info_soup = bs(info_page.text, 'lxml')
         info_div = info_soup.find('div', class_='info')
         user_rank = info_div.find('div', class_='user-rank').text.strip()
         li = info_div.find_all('li')
-        table_data = self.display_sub(username)
+        table_data = self.display_sub()
         solved = 0
 
         for row in table_data[1:]:
