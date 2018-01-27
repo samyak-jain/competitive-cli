@@ -40,7 +40,11 @@ class InteractiveShell:
 
 def submit(probID, path=None, language=None, website=None):
     global websiteObject
-    # login(website)
+    login(website)
+
+    if path is None:
+        path = manager.get_template(manager.template)
+
     result = websiteObject.submit(probID, path, language)
 
     if result is None:
