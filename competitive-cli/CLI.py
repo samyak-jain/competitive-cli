@@ -183,7 +183,7 @@ def instpl(path):
     manager.insertTemplate(pathString)
 
 
-def stats(website):
+def stats(website=None):
     global websiteObject
     if not websiteObject.logged_in:
         login(website)

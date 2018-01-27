@@ -285,8 +285,7 @@ class UvaSession(SessionAPI):
             translated_table.append(translated_row)
         return translated_table
 
-
-    def user_stats(self):
+    def user_stats(self, username):
         """
             Returns a Dictionary containing
             'Hits',
@@ -595,7 +594,7 @@ class CodechefSession(SessionAPI):
             )
         return stats
 
-    def user_stats(self):
+    def user_stats(self, username):
         response = requests.get(CodechefSession.codechef_url + '/users/' + self.username)
         # print(response.url)
         soup = bs(response.content, 'html5lib')
