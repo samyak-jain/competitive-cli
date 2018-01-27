@@ -38,7 +38,16 @@ def submit(probID, path=None, language=None, website=None):
     login(website)
 
     if path is None:
-        path = manager.get_template(manager.template)
+        paths = list(pathlib.Path.cwd().glob(probID + '*'))
+        if len(paths)>1:
+            print("Multiple matches")
+            return
+        if len(paths)==0:
+            print("No match found")
+
+        path = paths[0]
+    else:
+        path = pathlib.Path(path)
 
     if language is None:
         print(path)
@@ -57,15 +66,24 @@ def submit(probID, path=None, language=None, website=None):
 
     print(str(table))
 
+
 def download(probID, path=pathlib.Path().cwd(), website=None):
     global websiteObject
-    login(website)
+
+    if not websiteObject.logged_in:
+        login(website)
 
     path = pathlib.Path(path)
     url = websiteObject.get_question(probID)
-    html = requests.get(url).text
-    question_file = open(path / (probID + ".html"), 'w')
-    question_file.write(html)
+    if isinstance(websiteObject, SessionAPI.UvaSession):
+        pdf = requests.get(url).content
+        question_file = open(path / (probID + ".pdf"), 'wb')
+        question_file.write(pdf)
+    else:
+        html = requests.get(url).text
+        question_file = open(path / (probID + ".html"), 'w')
+        question_file.write(html)
+
     question_file.close()
 
 
@@ -118,9 +136,8 @@ def open_question(probID, web=None):
 
 def login(website=None):
     global websiteObject
-    # global acc_manager
 
-    if website is None and manager.account is not None:
+    if website is None and manager.account is not None or website is not None and websiteObject is not None and website == manager.get_account(manager.account)[0]:
         website, username, password = manager.get_account(manager.account)
         websiteObject = websiteObject.factoryMethod(website)
     else:
@@ -154,7 +171,7 @@ def soln(website=None):
     if not websiteObject.logged_in:
         login(website)
 
-    tab_data = websiteObject.display_sub(manager.get_account(manager.account)[1])
+    tab_data = websiteObject.display_sub()
     table = prettytable.PrettyTable(tab_data[0])
 
     for row in tab_data[1:]:

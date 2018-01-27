@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup as bs
 import json
 import datetime
 import difflib
+import pathlib
 
 
 class SessionAPI:
@@ -52,8 +53,8 @@ class SessionAPI:
         if website == 'codeforces':
             return CodeForce()
 
-class udebug:
 
+class udebug:
     uva_link = "https://www.udebug.com/"
     translator = {
         'uva': 'UVa',
@@ -178,7 +179,6 @@ class UvaSession(SessionAPI):
         super().__init__()
         self.uva_session = requests.session()
 
-
     def login(self, username, password):
         """
         logs the user in and returns a bool value
@@ -199,12 +199,12 @@ class UvaSession(SessionAPI):
         if (self.logged_in): self.username = username
         return self.logged_in
 
-    def submit(self, probNum, path=".", language=None):
+    def submit(self, probNum, path=pathlib.Path.cwd(), language=None):
         """
         submits the problem according to the problem Number of the question.
         returns a list containing the submission details about the question.
         """
-        file_path, filename = UvaSession.find_file(probNum, path)
+        file_path, filename = path, path.name
         probFile = open(file_path)
 
         if language is None:
@@ -213,6 +213,7 @@ class UvaSession(SessionAPI):
             language_number = UvaSession.language_handler[language]
 
         if language_number is None:
+            print("Language not specified")
             return
 
         payload = {
@@ -250,10 +251,11 @@ class UvaSession(SessionAPI):
         if not subs[0]:
             return None
         else:
-            while subs[0][2] in ['0', '20']:
+            while subs[0][2] == 0:
                 check = json.loads(requests.get('http://uhunt.felix-halim.net/api/subs-user/' + judge_id + '/' + min_id).text)
                 subs = check['subs']
             translated_row = list(map(str, subs[0]))
+            print(translated_row)
             translated_row[1] = probNum
             translated_row[2] = UvaSession.translator[translated_row[2]]
             translated_row[4] = datetime.datetime.fromtimestamp(int(translated_row[4])).strftime('%Y-%m-%d %H:%M:%S')
@@ -268,8 +270,8 @@ class UvaSession(SessionAPI):
         returns the submission details of all the submissions made till date for the particular user.
         """
         judge_id = requests.get("http://uhunt.felix-halim.net/api/uname2uid/" + self.username).text
-        check = json.loads(requests.get('http://uhunt.felix-halim.net/api/subs-user/' + judge_id).text)
-        subs = check['subs']
+        check = json.loads(requests.get('http://uhunt.felix-halim.net/api/subs-user-last/' + judge_id + "/20").text)
+        subs = check['subs'][::-1]
         translated_table = [
             ['Submission ID', 'Problem Number', 'Verdict ID', 'Runtime', 'Submission Time', 'Language', 'Rank']]
         uhunt_num = 'http://uhunt.onlinejudge.org/api/p/id/'
@@ -351,10 +353,15 @@ class UvaSession(SessionAPI):
         )
         url = r"https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=8&page=show_problem&problem=" + str(
             prob_json["pid"])
-        return url
+
+        html = requests.get(url).text
+        soup = bs(html, 'lxml')
+        url = soup.find_all('td', attrs={'align': 'right'})[0].find_all('a')[-1]['href']
+
+        return "https://uva.onlinejudge.org/" + url
 
     def logout(self):
-        pass
+        return True
 
 class CodechefSession(SessionAPI):
     codechef_url = r"https://www.codechef.com"
@@ -431,16 +438,15 @@ class CodechefSession(SessionAPI):
         if self.logged_in: self.username = username
         return self.logged_in
 
-
-    def submit(self, question_code, path=".", language=None):
+    def submit(self, question_code, path=pathlib.Path.cwd(), language=None):
         contest = ""
         for contests in self.info_present_contests():
             for contest_ques in CodechefSession.ques_in_contest(contests['contest_name']):
                 if contest_ques == question_code:
                     contest = '/' + contests['contest_name']
                     break
-        file_path = path
-        # file_path, file_name = CodechefSession.find_file(question_code, path)
+
+        file_path, file_name = path, path.name
         lang = CodechefSession.language_handler[language]
         response = self.codechef_session.get(
             self.codechef_url + contest + '/submit/' + question_code
@@ -561,7 +567,7 @@ class CodechefSession(SessionAPI):
         url = self.codechef_url + contest + '/problems/' + question_code
         return url
 
-    def display_sub(self, username, prob_code="", contest_code="", year="", language="All"):
+    def display_sub(self, prob_code="", contest_code="", year="", language="All"):
         """
         To get submission status... enter the above fields for filtering
         :param prob_code: (optional) prob_code
@@ -756,8 +762,8 @@ class CodeForce(SessionAPI):
         gets the language from the file extension or as user input and submits the file to the website.
         :return: bool value specifying whether the function succeeded.
         """
-        print("path:"+ path)
-        file_path, filename = CodeForce.find_file(question_id, path)
+
+        file_path, filename = path, path.name
         submit_link = CodeForce.FORCE_HOST + "problemset/submit"
         sub_request = self.code_sess.get(submit_link)
         subsoup = bs(sub_request.text, 'lxml')
