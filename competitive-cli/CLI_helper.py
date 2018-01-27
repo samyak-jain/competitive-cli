@@ -4,8 +4,6 @@ import os
 import pathlib
 import prettytable
 
-from colors import color
-
 
 class PreferenceManager:
     file_path = pathlib.Path.home() / "competitive-cli" / "config.json"
