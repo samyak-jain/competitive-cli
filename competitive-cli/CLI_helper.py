@@ -107,7 +107,7 @@ class PreferenceManager:
         table_list = table_string.split("\n")
 
         for keys in list_to_highlight:
-            table_list[int(keys) + 2] = color.BOLD + table_list[int(keys) + 2] + color.END
+            table_list[int(keys) + 2] = table_list[int(keys) + 2]
 
         return "\n".join(table_list)
 
@@ -130,7 +130,7 @@ class PreferenceManager:
         table_list = table_string.split("\n")
 
         for keys in list_to_highlight:
-            table_list[int(keys) + 2] = color.BOLD + table_list[int(keys) + 2] + color.END
+            table_list[int(keys) + 2] = table_list[int(keys) + 2]
 
         return "\n".join(table_list)
 
