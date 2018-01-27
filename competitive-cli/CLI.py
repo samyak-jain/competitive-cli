@@ -194,6 +194,16 @@ def stats(website):
         print(element, data[element])
 
 
+def  displayAccount():
+    kap = manager.accountString()
+    print(kap)
+
+
+def displayTemplate():
+    kap = manager.templateString()
+    print(kap)
+
+
 def usage():
     print(
         """
@@ -213,7 +223,7 @@ def usage():
                 ccli create account | Adds an account
                 ccli create file <probID> <language> <optional:Path> <optional:Template Index> | Create a file for you in given path
                 ccli delete tpl  <key of Template in Table> | deletes template
-                ccli delete Account <key of Account in Table> | deletes Account
+                ccli delete account <key of Account in Table> | deletes Account
                 ccli delete config | Clear all settings
                 ccli login <optional:Website Name> | Login to the given website
                 ccli update <key of Account given> <new Password> | updates password
@@ -246,8 +256,8 @@ def parse(query):
 
         'view':
             {
-                'question': open_question, 'solutions': soln, 'tpl': lambda: str(manager.templateString()),
-                'accounts': lambda: str(manager.accountString()), 'stats': stats, 'config': manager.show
+                'question': open_question, 'solutions': soln, 'tpl': displayTemplate,
+                'accounts': displayAccount, 'stats': stats, 'config': manager.show
             },
 
         'submit': submit,
@@ -261,7 +271,7 @@ def parse(query):
 
         'delete':
             {
-                'tpl': manager.deleteTemplate, 'accounts': manager.deleteAccount, 'config': manager.clear
+                'tpl': manager.deleteTemplate, 'account': manager.deleteAccount, 'config': manager.clear
             },
 
         'login': login,
