@@ -9,11 +9,6 @@ import CLI_helper
 import SessionAPI
 
 websiteObject = SessionAPI.SessionAPI()
-
-# pref_manager = CLI_helper.PreferenceManager()
-# acc_manager = CLI_helper.AccountManager()
-# tpl_manager = CLI_helper.TemplateManager()
-
 manager = CLI_helper.PreferenceManager()
 
 
