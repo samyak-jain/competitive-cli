@@ -53,8 +53,8 @@ class SessionAPI:
         if website == 'codeforces':
             return CodeForce()
 
-class udebug:
 
+class udebug:
     uva_link = "https://www.udebug.com/"
     translator = {
         'uva': 'UVa',
@@ -179,6 +179,9 @@ class UvaSession(SessionAPI):
         super().__init__()
         self.uva_session = requests.session()
 
+    @staticmethod
+    def website():
+        return "uva"
 
     def login(self, username, password):
         """
@@ -360,7 +363,7 @@ class UvaSession(SessionAPI):
         return "https://uva.onlinejudge.org/" + url
 
     def logout(self):
-        pass
+        return True
 
 class CodechefSession(SessionAPI):
     codechef_url = r"https://www.codechef.com"
@@ -406,6 +409,10 @@ class CodechefSession(SessionAPI):
         super().__init__()
         self.codechef_session = requests.session()
         self.username = ""
+
+    @staticmethod
+    def website():
+        return "codechef"
 
     def login(self, username="", password=""):
 
@@ -682,6 +689,10 @@ class CodeForce(SessionAPI):
     def __init__(self):
         super().__init__()
         self.code_sess = requests.session()
+
+    @staticmethod
+    def website():
+        return "codeforces"
 
     def login(self, username, password):
         """
