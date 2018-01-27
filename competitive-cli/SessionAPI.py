@@ -252,10 +252,11 @@ class UvaSession(SessionAPI):
         if not subs[0]:
             return None
         else:
-            while subs[0][2] in ['0', '20']:
+            while subs[0][2] == 0:
                 check = json.loads(requests.get('http://uhunt.felix-halim.net/api/subs-user/' + judge_id + '/' + min_id).text)
                 subs = check['subs']
             translated_row = list(map(str, subs[0]))
+            print(translated_row)
             translated_row[1] = probNum
             translated_row[2] = UvaSession.translator[translated_row[2]]
             translated_row[4] = datetime.datetime.fromtimestamp(int(translated_row[4])).strftime('%Y-%m-%d %H:%M:%S')
