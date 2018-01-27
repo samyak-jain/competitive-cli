@@ -8,11 +8,13 @@ import webbrowser
 import CLI_helper
 import SessionAPI
 
-websiteObject = None
+websiteObject = SessionAPI.SessionAPI()
 
-pref_manager = CLI_helper.PreferenceManager()
-acc_manager = CLI_helper.AccountManager()
-tpl_manager = CLI_helper.TemplateManager()
+# pref_manager = CLI_helper.PreferenceManager()
+# acc_manager = CLI_helper.AccountManager()
+# tpl_manager = CLI_helper.TemplateManager()
+
+manager = CLI_helper.PreferenceManager()
 
 class InteractiveShell:
     def __init__(self):
@@ -64,19 +66,16 @@ def download(probID, path=pathlib.Path().cwd(), website=None):
 
 
 def create(probID, language, path=None, tpl_index=None):
-    global tpl_manager
+    # global tpl_manager
 
     if tpl_index is None:
-        tpl_index = tpl_manager.template
-
+        tpl_index = manager.template
     if path is None:
         path = pathlib.Path().cwd()
     else:
         path = pathlib.Path(path)
 
-    tpl_file = tpl_manager.get_template(tpl_index)
     extension = SessionAPI.SessionAPI.find_language(language)
-
     path = path / (probID + extension)
 
     if path.is_file():
@@ -86,21 +85,24 @@ def create(probID, language, path=None, tpl_index=None):
     else:
         file = open(path, "w+")
 
-    with open(tpl_file) as tpl_new:
-        tpl_text = tpl_new.read()
+    if tpl_index is not None:
+        tpl_file = pathlib.Path(manager.get_template(tpl_index))
+        with open(tpl_file) as tpl_new:
+            tpl_text = tpl_new.read()
 
-    file.write(tpl_text)
+        file.write(tpl_text)
 
     file.close()
 
 
 def open_question(probID, web=None):
-    global pref_manager
+    # global pref_manager
     global websiteObject
-    login()
+    if not websiteObject.logged_in:
+        login()
 
     if webbrowser is None:
-       web = pref_manager.get("browser")
+       web = manager.get("browser")
     try:
         browser = webbrowser.get(web)
     except webbrowser.Error:
@@ -112,10 +114,10 @@ def open_question(probID, web=None):
 
 def login(website=None):
     global websiteObject
-    global acc_manager
+    # global acc_manager
 
-    if website is None and acc_manager.account is not None:
-        website, username, password = acc_manager.get_account(acc_manager.account)
+    if website is None and manager.account is not None:
+        website, username, password = manager.get_account(manager.account)
         websiteObject = websiteObject.factoryMethod(website)
     else:
         username = input("Enter your username: ")
@@ -125,7 +127,9 @@ def login(website=None):
             print("Your system is not allowing us to disable echo. We cannot read your password")
             return
 
-    if website is None and websiteObject is None:
+    if website is not None:
+        websiteObject = SessionAPI.SessionAPI().factoryMethod(website)
+    elif website is None and websiteObject is None:
         website = input("Enter website: ")
         websiteObject = SessionAPI.SessionAPI().factoryMethod(website)
     elif websiteObject is None:
@@ -133,7 +137,7 @@ def login(website=None):
 
     websiteObject.login(username, password)
 
-    acc_manager.insert(website, username, password)
+    manager.insertAccount(website, username, password)
 
     if websiteObject.logged_in:
         print("Successful Login")
@@ -146,7 +150,7 @@ def soln(website=None):
     if not websiteObject.logged_in:
         login(website)
 
-    tab_data = websiteObject.display_sub()
+    tab_data = websiteObject.display_sub(manager.get_account(manager.account)[1])
     table = prettytable.PrettyTable(tab_data[0])
 
     for row in tab_data[1:]:
@@ -160,7 +164,7 @@ def debug():
 
 
 def insacc():
-    global acc_manager
+    # global acc_manager
 
     website = input("Enter Website: ")
     username = input("Enter username: ")
@@ -170,20 +174,13 @@ def insacc():
         print("Your system is not allowing us to disable echo. We cannot read your password")
         return
 
-    acc_manager.insert(website, username, password)
+    manager.insertAccount(website, username, password)
 
 
-def instpl(path=None):
-    global tpl_manager
-
-    if path == '.':
-        path = pathlib.Path().cwd()
-    elif path is not None:
-        path = pathlib.Path(path)
-    else:
-        path = input("Enter Path: ")
-
-    tpl_manager.insert(path)
+def instpl(path):
+    path = pathlib.Path(path)
+    pathString = str(path.resolve())
+    manager.insertTemplate(pathString)
 
 
 def stats(website):
@@ -191,7 +188,7 @@ def stats(website):
     if not websiteObject.logged_in:
         login(website)
 
-    data = websiteObject.user_stats()
+    data = websiteObject.user_stats(manager.get_account(manager.account)[1])
 
     for element in data:
         print(element, data[element])
@@ -201,11 +198,28 @@ def usage():
     print(
         """
             Usage:
-                ccli set browser <browser-name>
+                ccli set browser <browser-name> | Set default browser
+                ccli set acc <key> | Set default account to be used
+                ccli set tpl <key> | Set default template to be used
+                ccli view question <probID> <optional:Website Name> | View the problem in your browser
+                ccli view solutions <optional:Website depends on Login> | View all your solutions 
+                ccli view tpl | View all the templates you have saved
+                ccli view accounts | View all the accounts you have saved
+                ccli view stats <website> | Displays your stats in the website       
+                ccli view config | Display your settings
+                ccli submit <probID> <optional:path> <optional:language=None> <optional:website> | Submit your Solution
+                ccli download <probID> <optional:path> <optional:Website Name> | Download the question in the path you specified 
+                ccli create tpl <optional:Path of template> | Creates template
+                ccli create account | Adds an account
+                ccli create file <probID> <language> <optional:Path> <optional:Template Index> | Create a file for you in given path
+                ccli delete tpl  <key of Template in Table> | deletes template
+                ccli delete Account <key of Account in Table> | deletes Account
+                ccli delete config | Clear all settings
+                ccli login <optional:Website Name> | Login to the given website
+                ccli update <key of Account given> <new Password> | updates password
         """
     )
     pass
-
 
 def parse(query):
     if len(query) == 0 or query == ["--help"] or query == ["-h"]:
@@ -220,19 +234,20 @@ def parse(query):
             flags.append(cmd)
         else:
             new_cmds.append(cmd)
-
+    # pref_manager = manger
     commands = {
 
         'set':
             {
-                'browser': pref_manager.update_browser,
-                'acc': acc_manager.set_default, 'tpl': tpl_manager.set_default
+                'browser': manager.update_browser,
+                'acc': manager.setDefaultAccount,
+                'tpl': manager.setDefaultTemplate
             },
 
         'view':
             {
-                'question': open_question, 'solutions': soln, 'tpl': lambda: print(str(tpl_manager)),
-                'accounts': lambda: print(str(acc_manager)), 'stats': stats, 'config': pref_manager.show
+                'question': open_question, 'solutions': soln, 'tpl': lambda: str(manager.templateString()),
+                'accounts': lambda: str(manager.accountString()), 'stats': stats, 'config': manager.show
             },
 
         'submit': submit,
@@ -241,19 +256,19 @@ def parse(query):
 
         'create':
             {
-                'tpl': instpl, 'accounts': insacc, 'file': create
+                'tpl': instpl, 'account': insacc, 'file': create
             },
 
         'delete':
             {
-                'tpl': tpl_manager.delete, 'accounts': acc_manager.delete, 'config': pref_manager.clear
+                'tpl': manager.deleteTemplate, 'accounts': manager.deleteAccount, 'config': manager.clear
             },
 
         'login': login,
 
         'update':
             {
-                'account': acc_manager.update
+                'account': manager.updateAccount
             },
 
         'debug': debug
@@ -284,20 +299,17 @@ def parse(query):
     return iterative_commands, arguments, flags
 
 def main():
-    global pref_manager
-    global tpl_manager
-    global acc_manager
-
     query = sys.argv[1:]
 
     pathlib.Path(pathlib.Path.home() / "competitive-cli").mkdir(parents=True, exist_ok=True)
 
-    with pref_manager, tpl_manager, acc_manager:
+    with manager:
         if query == ["interactive"]:
             shell = InteractiveShell()
             shell.start()
         else:
             parse(query)
+
 
 if __name__ == "__main__":
     main()

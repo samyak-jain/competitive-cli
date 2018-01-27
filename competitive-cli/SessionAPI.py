@@ -562,7 +562,7 @@ class CodechefSession(SessionAPI):
         url = self.codechef_url + contest + '/problems/' + question_code
         return url
 
-    def display_sub(self, prob_code="", contest_code="", year="", language="All"):
+    def display_sub(self, username, prob_code="", contest_code="", year="", language="All"):
         """
         To get submission status... enter the above fields for filtering
         :param prob_code: (optional) prob_code
