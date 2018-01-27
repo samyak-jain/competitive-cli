@@ -352,7 +352,12 @@ class UvaSession(SessionAPI):
         )
         url = r"https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=8&page=show_problem&problem=" + str(
             prob_json["pid"])
-        return url
+
+        html = requests.get(url).text
+        soup = bs(html, 'lxml')
+        url = soup.find_all('td', attrs={'align': 'right'})[0].find_all('a')[-1]['href']
+
+        return "https://uva.onlinejudge.org/" + url
 
     def logout(self):
         pass

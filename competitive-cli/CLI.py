@@ -61,7 +61,7 @@ def download(probID, path=pathlib.Path().cwd(), website=None):
 
     path = pathlib.Path(path)
     url = websiteObject.get_question(probID)
-    if isinstance(SessionAPI.UvaSession, websiteObject):
+    if isinstance(websiteObject, SessionAPI.UvaSession):
         pdf = requests.get(url).content
         question_file = open(path / (probID + ".pdf"), 'wb')
         question_file.write(pdf)
