@@ -38,7 +38,16 @@ def submit(probID, path=None, language=None, website=None):
     login(website)
 
     if path is None:
-        path = manager.get_template(manager.template)
+        paths = list(pathlib.Path.cwd().glob(probID + '*'))
+        if len(paths)>1:
+            print("Multiple matches")
+            return
+        if len(paths)==0:
+            print("No match found")
+
+        path = paths[0]
+    else:
+        path = pathlib.Path(path)
 
     result = websiteObject.submit(probID, path, language)
 
@@ -123,7 +132,7 @@ def open_question(probID, web=None):
 def login(website=None):
     global websiteObject
 
-    if website is None and manager.account is not None or website is not None and websiteObject is not None and website == websiteObject.website():
+    if website is None and manager.account is not None or website is not None and websiteObject is not None and website == manager.get_account(manager.account)[0]:
         website, username, password = manager.get_account(manager.account)
         websiteObject = websiteObject.factoryMethod(website)
     else:
@@ -157,7 +166,7 @@ def soln(website=None):
     if not websiteObject.logged_in:
         login(website)
 
-    tab_data = websiteObject.display_sub(manager.get_account(manager.account)[1])
+    tab_data = websiteObject.display_sub()
     table = prettytable.PrettyTable(tab_data[0])
 
     for row in tab_data[1:]:
