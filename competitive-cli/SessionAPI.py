@@ -38,9 +38,10 @@ class SessionAPI:
             to return the language code of the question to be submitted
             :return:language code
         """
-        print(str(language))
+        filename, file_extension = os.path.splitext('/path/to/hre.py')
+
         try:
-            return cls.language_handler[language]
+            return cls.language_handler[file_extension]
         except KeyError:
             print("The file extension cannot be inferred. Please manually enter the relevant language")
 
@@ -235,6 +236,7 @@ class UvaSession(SessionAPI):
 
         resp = self.uva_session.post(UvaSession.SUBMIT_PATH, data=payload, headers=updated_headers)
         submission_id = resp.url[resp.url.find('ID')+3:]
+        print(submission_id)
         return self.check_result(submission_id, probNum)
 
     def check_result(self, submission_id, probNum):
@@ -742,6 +744,7 @@ class CodeForce(SessionAPI):
         for element in table[26].find_all('td'):
             row.append("".join(element.text.split()))
         table_data.append(row)
+        print(table_data)
         return table_data
 
 
@@ -770,7 +773,7 @@ class CodeForce(SessionAPI):
         hidden = subsoup.find('form', class_='submit-form')
         hidden = hidden.find_all('input')
 
-        if not lang:
+        if lang is None:
             compiler = CodeForce.find_language(filename)
         else:
             compiler = CodeForce.language['lang']
@@ -787,11 +790,16 @@ class CodeForce(SessionAPI):
             'sourceFile': open(file_path),
             '_tta': ''
         }
-
         response = self.code_sess.post(submit_link, data=form)
-        if response == CodeForce.FORCE_HOST + "problemset/status":
+        if str(response.url) == CodeForce.FORCE_HOST + "problemset/status":
             return self.check_result()
         else:
+            soup = bs(response.text, "lxml")
+            errors = soup.find_all(class_="error")
+            message = ''
+            for i in errors:
+                message += i.text
+            print(message)
             return False
 
     def display_sub(self):

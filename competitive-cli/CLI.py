@@ -35,7 +35,8 @@ class InteractiveShell:
 
 def submit(probID, path=None, language=None, website=None):
     global websiteObject
-    login(website)
+    if not websiteObject.logged_in:
+        login(website)
 
     if path is None:
         paths = list(pathlib.Path.cwd().glob(probID + '*'))
@@ -49,21 +50,19 @@ def submit(probID, path=None, language=None, website=None):
     else:
         path = pathlib.Path(path)
 
+    print(path)
     if language is None:
-        print(path)
         result = websiteObject.submit(probID, path)
     else:
-        print(path)
         result = websiteObject.submit(probID, path, language)
 
-    if result is None:
+    if result is None or result is False:
         print("Error submitting")
         return
 
     table = prettytable.PrettyTable(result[0])
     for row in result[1:]:
         table.add_row(row)
-
     print(str(table))
 
 
@@ -87,9 +86,12 @@ def download(probID, path=pathlib.Path().cwd(), website=None):
     question_file.close()
 
 
-def create(probID, language, path=None, tpl_index=None):
-    # global tpl_manager
-    print(probID)
+def create(probID, path=None, tpl_index=None):
+
+    if probID is None:
+        print("Missing Problem ID/filename.")
+        return
+
     if tpl_index is None:
         tpl_index = manager.template
     if path is None:
@@ -97,8 +99,8 @@ def create(probID, language, path=None, tpl_index=None):
     else:
         path = pathlib.Path(path)
 
-    extension = SessionAPI.SessionAPI.find_language(str(language))
-    path = path / (str(probID) + extension)
+    # extension = SessionAPI.SessionAPI.find_language(str(language))
+    path = path / str(probID)
 
     if path.is_file():
         overwrite = input("File already exists? (y/n) ")
