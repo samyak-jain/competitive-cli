@@ -587,17 +587,17 @@ class CodechefSession(SessionAPI):
         response = self.codechef_session.get(self.codechef_url + '/submissions', params=param)
         soup = bs(response.content, 'html5lib')
         table = soup.find('table', attrs={'class', 'dataTable'})
-        stats = []
+        stats = [['ID', 'Date', 'Question', 'Contest', 'Status']]
         for tr in table.find('tbody').findAll('tr'):
             td = tr.find_all('td')
             stats.append(
-                {
-                    'id': td[0].get_text(),
-                    'date': td[1].get_text(),
-                    'question': td[3].get_text(),
-                    'contest': td[4].get_text(),
-                    'status': td[5].find('span')['title']
-                }
+                [
+                    td[0].get_text(),
+                    td[1].get_text(),
+                    td[3].get_text(),
+                    td[4].get_text(),
+                    td[5].find('span')['title']
+                ]
             )
         return stats
 
