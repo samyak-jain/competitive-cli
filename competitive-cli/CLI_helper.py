@@ -47,6 +47,7 @@ class PreferenceManager:
             self.data["tpl"] = None
             self.data["accounts"] = dict()
             self.data["acc"] = None
+
         # Templates
         if self.data["templates"] == {}:
             self.number_of_templates = 0
@@ -55,7 +56,7 @@ class PreferenceManager:
 
         self.template = self.data["tpl"]
 
-        #Account
+        # Account
         if self.data["accounts"] == {}:
             self.number_of_accounts = 0
         else:

@@ -45,7 +45,8 @@ def submit(probID, path=None, language=None, website=None):
             return
         if len(paths)==0:
             print("No match found")
-
+            return
+        print(path)
         path = paths[0]
     else:
         path = pathlib.Path(path)
@@ -269,7 +270,7 @@ def parse(query):
     new_cmds = []
 
     for cmd in query:
-        if '-' in cmd:
+        if ' -' in cmd:
             flags.append(cmd)
         else:
             new_cmds.append(cmd)
@@ -333,9 +334,9 @@ def parse(query):
                 return
         else:
             arguments.append(command)
-
     iterative_commands(*arguments)
     return iterative_commands, arguments, flags
+
 
 def main():
     query = sys.argv[1:]
