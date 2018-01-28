@@ -140,7 +140,7 @@ def open_question(probID, web=None):
 def login(website=None):
     global websiteObject
 
-    if website is None and manager.account is not None or website is not None and websiteObject is not None and website == manager.get_account(manager.account)[0]:
+    if website is None and manager.account is not None or website is not None and websiteObject is not None and manager.account is not None and website == manager.get_account(manager.account)[0]:
         website, username, password = manager.get_account(manager.account)
         websiteObject = websiteObject.factoryMethod(website)
     else:
@@ -161,10 +161,9 @@ def login(website=None):
 
     websiteObject.login(username, password)
 
-    manager.insertAccount(website, username, password)
-
     if websiteObject.logged_in:
         print("Successful Login")
+        manager.insertAccount(website, username, password)
     else:
         print("Login Failed")
 

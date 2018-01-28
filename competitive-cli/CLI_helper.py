@@ -294,9 +294,10 @@ class PreferenceManager:
         :param key:
         :return: Name of the website, username, password
         """
-        if key is None or key is str():
+        if key is None:
             print("Login to continue")
             return False
+
         key = str(key)
         website, username = self.data["accounts"][key]
         password = keyring.get_password(website, username)
