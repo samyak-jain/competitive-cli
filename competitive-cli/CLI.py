@@ -1,4 +1,5 @@
 import getpass
+import os
 import pathlib
 import prettytable
 import requests
@@ -49,6 +50,10 @@ def submit(probID, path=None, language=None, website=None):
         path = paths[0]
     else:
         path = pathlib.Path(path)
+
+    if os.stat(str(path.resolve())).st_size == 0:
+        print("File is empty. Please upload a valid file")
+        return
 
     if language is None:
         result = websiteObject.submit(probID, path)
