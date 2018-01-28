@@ -744,7 +744,6 @@ class CodeForce(SessionAPI):
         for element in table[26].find_all('td'):
             row.append("".join(element.text.split()))
         table_data.append(row)
-        print(table_data)
         return table_data
 
 

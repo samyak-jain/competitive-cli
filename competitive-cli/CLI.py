@@ -46,12 +46,10 @@ def submit(probID, path=None, language=None, website=None):
         if len(paths)==0:
             print("No match found")
             return
-        print(path)
         path = paths[0]
     else:
         path = pathlib.Path(path)
 
-    print(path)
     if language is None:
         result = websiteObject.submit(probID, path)
     else:
