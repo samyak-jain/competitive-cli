@@ -1,6 +1,7 @@
 import getpass
 import os
 import pathlib
+import pickle
 import prettytable
 import requests
 import sys
@@ -186,6 +187,11 @@ def soln(website=None):
 
 
 def debug():
+    """
+    Helper function for the udebug API
+    :return:
+    """
+
     pass
 
 
@@ -341,9 +347,18 @@ def parse(query):
 
 
 def main():
+    global websiteObject
     query = sys.argv[1:]
 
     pathlib.Path(pathlib.Path.home() / "competitive-cli").mkdir(parents=True, exist_ok=True)
+
+    pickle_path = pathlib.Path(pathlib.Path.home() / "competitive-cli" / "session.pickle")
+
+    if pickle_path.is_file():
+        with open(pickle_path, 'wb') as pickle_file:
+            websiteObject = pickle.load(pickle_file)
+    else:
+        open(pickle_path, 'a').close()
 
     with manager:
         if query == ["interactive"]:
@@ -351,6 +366,9 @@ def main():
             shell.start()
         else:
             parse(query)
+
+    with open(pickle_path, 'wb') as pickle_file:
+        pickle.dump(websiteObject, pickle_file)
 
 
 if __name__ == "__main__":
