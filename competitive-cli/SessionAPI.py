@@ -409,6 +409,9 @@ class CodechefSession(SessionAPI):
         super().__init__()
         self.codechef_session = requests.session()
         self.username = ""
+        self.codechef_api = "https://api.codechef.com/"
+        self.headers = None
+
 
     def login(self, username="", password=""):
 
@@ -626,6 +629,29 @@ class CodechefSession(SessionAPI):
             'country-rank': country_rank,
             'completely solved questions': fully_solved,
             'partially solved question': partially_solved})
+    
+    def authenticate_api(self):
+        dat = {
+                "grant_type": "client_credentials",
+                "scope": "public",
+                "client_id": "2bf41cc6e2c6d65ea66c29f420c0aed5",
+                "client_secret": "26ef3ca1ad1f918e5e339d42e194ecec",
+                "redirect_uri":"{your_redirect_uri_without_bracket}"
+                }
+
+        resp = requests.post(self.codechef_api + "oauth/token", data=dat)
+        the_data = resp.json()
+        access_token = the_data['result']['data']['access_token']
+        if str(resp.status_code) == '200':
+            self.headers = { "Authorization": "Bearer " + access_token }
+            return True
+        else:
+            return False
+
+    def api_user_stats(self, username):
+         resp = requests.get(self.codechef_api + "/users/" + str(username),
+                 headers=self.headers)
+         return resp.json() 
 
 
 class CodeForce(SessionAPI):
