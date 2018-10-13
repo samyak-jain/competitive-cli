@@ -7,6 +7,7 @@ import tornado.web
 from run_cpp import run_cpp
 from tornado.options import define, options
 import tornado.escape
+import tornado.wsgi
 
 define("port", default=8080, help="runs on the given port", type=int)
 
@@ -55,14 +56,17 @@ class TestHandler(BaseHandler):
         }))
 
 
+app = tornado.web.Application(
+    handlers=[
+        (r"/", RunProgram),
+        (r"/test", TestHandler)
+    ]
+)
+application = tornado.wsgi.WSGIAdapter(app)
+
 if __name__ == "__main__":
     options.parse_command_line()
-    app = tornado.web.Application(
-        handlers=[
-            (r"/", RunProgram),
-            (r"/test", TestHandler)
-        ]
-    )
-    http_server = tornado.httpserver.HTTPServer(app)
-    http_server.listen(os.environ.get("PORT", options.port))
+    # http_server = tornado.httpserver.HTTPServer(app)
+    app.listen(9090)
+    # http_server.listen(os.environ.get("PORT", options.port))
     tornado.ioloop.IOLoop.instance().start()
