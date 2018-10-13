@@ -4,8 +4,7 @@ import traceback
 import tornado.httpserver
 import tornado.ioloop
 import tornado.web
-from motor import motor_tornado
-from tornado.gen import coroutine
+from run_cpp import run_cpp
 from tornado.options import define, options
 import tornado.escape
 
@@ -17,12 +16,6 @@ class MyAppException(tornado.web.HTTPError):
 
 
 class BaseHandler(tornado.web.RequestHandler):
-
-    def db(self):
-        clientz = self.settings['db_client']
-        db = clientz.data
-        return db
-
     def write_error(self, status_code, **kwargs):
         self.set_header('Content-Type', 'application/json')
         if self.settings.get("serve_traceback") and "exc_info" in kwargs:
@@ -42,24 +35,33 @@ class BaseHandler(tornado.web.RequestHandler):
                 }))
 
 
-class PutData(BaseHandler):
-    def get(self):
-        data = self.get_argument("data")
-        db = self.db().data
-        db.insert_one({"data": data})
+class RunProgram(BaseHandler):
+    async def get(self):
+        user_input = self.get_argument("input")
+        probNumber = self.get_argument("pno")
+        output = run_cpp(probNumber, user_input)
+
         self.write(json.dumps({
-            'success': 200
+            'status_Code': 200,
+            'result': output
         }))
+
+
+class TestHandler(BaseHandler):
+    async def get(self):
+        self.write(json.dumps({
+            'status_code': 200,
+            'message': 'success'
+        }))
+
 
 if __name__ == "__main__":
     options.parse_command_line()
-    client = motor_tornado.MotorClient("mongodb://"+os.environ['tornado_user']+":"+ os.environ['tornado_pass']
-                                       +"@ds117605.mlab.com:17605/data")
     app = tornado.web.Application(
         handlers=[
-            (r"/", PutData)
-        ],
-        db_client=client
+            (r"/", RunProgram),
+            (r"/test", TestHandler)
+        ]
     )
     http_server = tornado.httpserver.HTTPServer(app)
     http_server.listen(os.environ.get("PORT", options.port))
