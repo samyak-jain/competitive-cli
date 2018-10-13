@@ -11,6 +11,7 @@ requests = "*"
 keyring = "*"
 lxml = "*"
 prettytable = "*"
+requests-html = "*"
 
 [dev-packages]
 
