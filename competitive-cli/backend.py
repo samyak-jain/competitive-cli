@@ -47,11 +47,20 @@ class RunProgram(BaseHandler):
         }))
 
 
+class TestHandler(BaseHandler):
+    async def get(self):
+        self.write(json.dumps({
+            'status_code': 200,
+            'message': 'success'
+        }))
+
+
 if __name__ == "__main__":
     options.parse_command_line()
     app = tornado.web.Application(
         handlers=[
-            (r"/", RunProgram)
+            (r"/", RunProgram),
+            (r"/test", TestHandler)
         ]
     )
     http_server = tornado.httpserver.HTTPServer(app)
